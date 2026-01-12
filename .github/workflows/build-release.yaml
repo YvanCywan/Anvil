@@ -19,10 +19,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Needed to count commits
+          fetch-depth: 0
 
-      # Simple SemVer strategy: 0.1.{commit_count}
-      # This guarantees purely increasing numbers without complex tag parsing
       - name: Calculate Version
         id: semver
         run: |
