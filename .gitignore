@@ -1,0 +1,5 @@
+bin/**/*
+build.ninja
+.anvil/**/*
+.idea
+.idea/**/*
