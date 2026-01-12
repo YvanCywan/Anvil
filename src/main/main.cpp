@@ -1,7 +1,11 @@
 #include <iostream>
 #include <string>
 #include <filesystem>
-#include <unistd.h>
+#ifdef _WIN32
+    #include <process.h> // Windows equivalent of unistd.h
+#else
+    #include <unistd.h>  // Linux/Mac standard
+#endif
 #include "process.hpp"
 #include "anvil/script_compiler.hpp"
 
