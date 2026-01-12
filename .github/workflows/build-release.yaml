@@ -1,0 +1,79 @@
+name: Release Anvil
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: anvil-linux-x64.zip
+            binary_name: anvil
+            bootstrap_script: ./bootstrap.sh
+          - os: macos-latest
+            artifact_name: anvil-macos-arm64.zip
+            binary_name: anvil
+            bootstrap_script: ./bootstrap.sh
+          - os: windows-latest
+            artifact_name: anvil-windows-x64.zip
+            binary_name: anvil.exe
+            bootstrap_script: .\bootstrap.bat
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Ninja (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get install -y ninja-build
+
+      - name: Install Ninja (macOS)
+        if: matrix.os == 'macos-latest'
+        run: brew install ninja
+
+      - name: Setup MSVC (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install Ninja (Windows)
+        if: matrix.os == 'windows-latest'
+        run: choco install ninja
+
+      - name: Bootstrap V0
+        run: ${{ matrix.bootstrap_script }}
+
+      - name: Build V1 (Self-Hosted)
+        run: |
+          ./bin/${{ matrix.binary_name }} build
+        shell: bash
+
+      - name: Package Release
+        run: |
+          mkdir staging
+          mkdir staging/bin
+          cp bin/${{ matrix.binary_name }} staging/bin/
+          cd staging
+          
+          # Zip it up based on the OS
+          if [ "${{ runner.os }}" == "Windows" ]; then
+            7z a ../${{ matrix.artifact_name }} *
+          else
+            zip -r ../${{ matrix.artifact_name }} *
+          fi
+        shell: bash
+
+      # --- STEP 4: PUBLISH ---
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: ${{ matrix.artifact_name }}
