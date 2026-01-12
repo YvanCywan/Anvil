@@ -1,9 +1,13 @@
 @echo off
 echo [Anvil] Bootstrapping V0 on Windows...
+
 if not exist bin mkdir bin
 
-:: Compile main.cpp using MSVC (cl.exe)
-:: /std:c++17 /EHsc (Exceptions) /Fe: output path
-cl /nologo /std:c++17 /EHsc src\main\main.cpp /Fe:bin\anvil.exe
+cl /nologo /std:c++17 /EHsc /I src src\main\main.cpp /Fe:bin\anvil.exe
+
+if %errorlevel% neq 0 (
+    echo [Anvil] Bootstrap FAILED.
+    exit /b %errorlevel%
+)
 
 echo [Anvil] Bootstrap Complete.
