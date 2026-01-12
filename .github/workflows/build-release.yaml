@@ -1,9 +1,9 @@
-name: Release Anvil
+name: Build & Release Anvil
 
 on:
   push:
     branches:
-      - main  # Trigger on every push to main
+      - main
     paths-ignore:
       - 'README.md'
       - '.github/**'
@@ -51,12 +51,9 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # ... (Install Ninja/MSVC steps remain the same) ...
-
       - name: Bootstrap V0
         run: ${{ matrix.bootstrap_script }}
 
-      # We inject the version number into the binary during build
       - name: Build V1
         run: |
           # You might want to pass -DVERSION=... here later
