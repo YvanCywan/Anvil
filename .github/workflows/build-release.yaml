@@ -1,4 +1,4 @@
-name: Build & Release Anvil
+name: Release Anvil
 
 on:
   push:
@@ -48,12 +48,27 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Install Ninja (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get install -y ninja-build
+
+      - name: Install Ninja (macOS)
+        if: matrix.os == 'macos-latest'
+        run: brew install ninja
+
+      - name: Setup MSVC (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install Ninja (Windows)
+        if: matrix.os == 'windows-latest'
+        run: choco install ninja
+
       - name: Bootstrap V0
         run: ${{ matrix.bootstrap_script }}
 
-      - name: Build V1
+      - name: Build V1 (Self-Hosted)
         run: |
-          # You might want to pass -DVERSION=... here later
           ./bin/${{ matrix.binary_name }} build
         shell: bash
 
@@ -63,7 +78,8 @@ jobs:
           mkdir staging/bin
           cp bin/${{ matrix.binary_name }} staging/bin/
           cd staging
-          
+
+          # Zip it up based on the OS
           if [ "${{ runner.os }}" == "Windows" ]; then
             7z a ../${{ matrix.artifact_name }} *
           else
@@ -71,26 +87,10 @@ jobs:
           fi
         shell: bash
 
+      # --- CHANGED: Upload to Actions Storage instead of Release ---
+      # This makes the binary available for the final 'publish-release' job
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
           path: ${{ matrix.artifact_name }}
-
-  publish-release:
-    needs: [calculate-version, build-and-release]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download All Artifacts
-        uses: actions/download-artifact@v4
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ needs.calculate-version.outputs.version }}
-          name: Release v${{ needs.calculate-version.outputs.version }}
-          files: |
-            anvil-linux-x64.zip/anvil-linux-x64.zip
-            anvil-macos-arm64.zip/anvil-macos-arm64.zip
-            anvil-windows-x64.zip/anvil-windows-x64.zip
-          make_latest: true
