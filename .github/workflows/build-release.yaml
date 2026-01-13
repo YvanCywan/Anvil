@@ -75,7 +75,7 @@ jobs:
         run: |
           mkdir staging
           mkdir staging/bin
-          cp bin/${{ matrix.binary_name }} staging/bin/
+          cp .anvil/wrapper/latest/bin/${{ matrix.binary_name }} staging/bin/
           cd staging
 
           # Zip it up based on the OS
