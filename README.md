@@ -1,102 +1,125 @@
 # Anvil
 
-Anvil is a modern, C++-based build system designed to be simple, extensible, and self-hosting. It allows you to define your build logic using C++ itself, providing the full power of the language for your build scripts.
+Anvil is a modern, C++-based build system designed for simplicity, extensibility, and self-sufficiency. It empowers you to define your build logic using C++ itself, giving you the full power of the language for your build scripts without requiring complex external languages or tools.
 
-## Project Structure
+At its core, Anvil is a single executable that compiles and runs a `build.cpp` file in your project's root. To make this process seamless, it comes with a lightweight wrapper (`anvilw`) that automatically downloads the correct Anvil version for your platform.
 
-*   **`src/`**: Contains the source code for the Anvil build system itself.
-    *   `src/main/`: The entry point and CLI command implementations (`build`, `clean`).
-    *   `src/anvil/`: Core build logic, including the script compiler, driver, and toolchain management.
-*   **`build.cpp`**: The build script for the Anvil project itself. This demonstrates how Anvil builds itself (dogfooding).
-*   **`anvilw` / `anvilw.bat`**: The Anvil Wrapper. This script ensures you have the correct version of Anvil installed and runs it.
-*   **`wrapper/`**: Configuration for the wrapper.
+## Features
 
-## Getting Started
+*   **C++ Build Scripts**: Define your entire build process in standard C++. No need to learn another language like Gradle, Make, or CMake.
+*   **Zero Setup**: The `anvilw` wrapper automatically downloads the Anvil executable and its dependencies. Users of your project don't need to install anything other than a C++ compiler.
+*   **Self-Contained**: The Anvil executable includes all necessary logic to compile your build script and manage dependencies.
+*   **Automatic Toolchain Management**: Anvil automatically downloads and manages `ninja` for high-performance builds.
+*   **Cross-Platform**: Works on Linux, macOS, and Windows.
+*   **Extensible**: Easily add new commands and functionality to the core Anvil executable.
 
-### Prerequisites
+## How It Works
 
-*   A C++ compiler (Clang or GCC) to bootstrap the build script.
-*   `unzip`, `curl` or `wget` (for the wrapper to download Anvil and dependencies).
+Anvil's bootstrap process is designed to be transparent and efficient:
 
-### Building the Project
+1.  **Wrapper Execution**: You run `./anvilw build`.
+2.  **Download Anvil**: The wrapper checks for a cached Anvil executable. If it's not found, it downloads the correct version for your OS from GitHub Releases.
+3.  **Compile Build Script**: The downloaded `anvil` executable compiles your project's `build.cpp` using a bundled C++ driver. This creates a temporary `runner` executable in your `.anvil` directory.
+4.  **Execute Build Logic**: The `runner` is executed. It contains your project's specific build configuration.
+5.  **Download Ninja**: The `runner` checks for `ninja`. If it's not present, it's downloaded automatically.
+6.  **Generate Ninja Files**: Your build logic generates a `build.ninja` file.
+7.  **Run Ninja**: The `ninja` executable is called, which performs the final, high-performance compilation of your project.
 
-Anvil uses a wrapper script to bootstrap itself. You don't need to manually download or compile Anvil to get started.
+## Getting Started: Using Anvil in Your Project
+
+To start using Anvil for your own C++ project, follow these steps.
+
+### 1. Add the Anvil Wrapper
+
+Copy the following files into your project's root directory:
+
+*   `anvilw` (for Linux/macOS)
+*   `anvilw.bat` (for Windows)
+*   `wrapper/anvil-wrapper.properties`
+
+These files can be found in the Anvil repository.
+
+### 2. Create a `build.cpp`
+
+Create a `build.cpp` file in your project's root. This is where you will define how your project is built.
+
+Here is a basic example for a simple "hello world" application:
+
+```cpp
+// build.cpp
+#include "anvil/api.hpp"
+
+// This function is the entry point for your build script.
+void configure(anvil::Project& project) {
+    project.name = "MyAwesomeApp";
+
+    project.add_executable("my_app", [](anvil::CppApplication& app) {
+        app.standard = anvil::CppStandard::CPP_20;
+        app.add_source("src/main.cpp");
+        app.add_include("include");
+    });
+}
+```
+
+### 3. Build Your Project
+
+Now, you can build your project by running the wrapper:
+
+*   **Linux/macOS:**
+    ```bash
+    chmod +x ./anvilw
+    ./anvilw build
+    ```
+
+*   **Windows:**
+    ```cmd
+    anvilw build
+    ```
+
+The final executable will be placed in the `bin/` directory.
+
+### Example Project
+
+For a complete working example, check out the **[Anvil Demo Project](https://github.com/YvanCywan/anvil_demo)**.
+
+## Building Anvil (for Development)
+
+If you want to contribute to Anvil itself, you'll need to build the project from the source.
 
 1.  **Clone the repository:**
     ```bash
-    git clone <repo_url>
-    cd Anvil
+    git clone https://github.com/YvanCywan/anvil.git
+    cd anvil
     ```
 
 2.  **Run the build:**
-    Use the wrapper script to build the project.
-    *   **Linux/macOS:**
-        ```bash
-        ./anvilw build
-        ```
-    *   **Windows:**
-        ```cmd
-        anvilw build
-        ```
-
-    The first time you run this, the wrapper will download the configured version of Anvil. Then, Anvil will compile the `build.cpp` script and execute it to build the project. Anvil will also automatically download `ninja` if it is not found.
-
-3.  **Clean the build:**
-    To remove build artifacts:
+    Anvil builds itself using the same wrapper script.
     ```bash
-    ./anvilw clean
+    ./anvilw build
     ```
+
+This will produce the `anvil` executable in the `bin/` directory.
 
 ## Configuration
 
-### Selecting a Compiler
+### `build.cpp` API
 
-You can configure which compiler Anvil uses for your project in your `build.cpp`:
+You configure your build by calling methods on the `project` and `app` objects.
 
-```cpp
-project.add_executable("my_app", [](anvil::CppApplication& app) {
-    // Use GCC
-    app.set_compiler(anvil::CompilerId::GCC);
-    // OR Use Clang (default)
-    app.set_compiler(anvil::CompilerId::Clang);
-    
-    // ... other settings
-});
-```
+*   `app.set_compiler(anvil::CompilerId)`: Choose between `GCC` and `Clang`.
+*   `app.add_source(path)`: Add a source file.
+*   `app.add_include(path)`: Add an include directory.
+*   `app.add_define(definition)`: Add a preprocessor definition.
+*   `app.add_link_flag(flag)`: Add a flag to be passed to the linker (e.g., `-static`).
 
-### Bootstrapping Compiler
+### Environment Variables
 
-By default, Anvil uses `clang++` to compile the `build.cpp` script itself. If you want to use `g++` for this bootstrap step, set the `ANVIL_SCRIPT_COMPILER` environment variable:
+*   `ANVIL_SCRIPT_COMPILER`: Set the compiler used to bootstrap the `build.cpp` script.
+    *   Example: `export ANVIL_SCRIPT_COMPILER=gcc`
 
-```bash
-export ANVIL_SCRIPT_COMPILER=gcc
-./anvilw build
-```
+## The Anvil Wrapper (`anvilw`)
 
-## Developing Anvil
+The wrapper is a simple script that ensures the correct version of Anvil is available. Its behavior is configured by `wrapper/anvil-wrapper.properties`:
 
-### Adding a New Command
-
-Anvil's CLI is extensible. To add a new command:
-
-1.  Create a new header file in `src/main/` (e.g., `my_command.hpp`).
-2.  Inherit from the `anvil::Command` class.
-3.  Implement `getName()`, `getDescription()`, and `execute()`.
-4.  Register your command in `src/main/main.cpp`:
-    ```cpp
-    registry.registerCommand(std::make_unique<anvil::MyCommand>());
-    ```
-
-### Modifying the Build Logic
-
-The core build logic resides in `src/anvil/`.
-*   `script_compiler.hpp`: Handles compiling the user's `build.cpp`.
-*   `driver.cpp`: The runtime that executes the compiled build script.
-*   `toolchain.hpp`: Defines compiler interfaces (Clang, GCC).
-*   `dependency_manager.hpp`: Handles downloading external tools like Ninja.
-
-## Wrapper Configuration
-
-The wrapper configuration is located in `wrapper/anvil-wrapper.properties`.
-*   `anvilVersion`: The version of Anvil to use (e.g., `latest` or `1.0.0`).
+*   `anvilVersion`: The version of Anvil to use. Can be a specific version (e.g., `0.1.53`) or `latest`.
 *   `repoUrl`: The GitHub repository URL to download releases from.
