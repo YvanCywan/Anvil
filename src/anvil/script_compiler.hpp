@@ -2,7 +2,9 @@
 #include <string>
 #include <utility>
 #include <filesystem>
+#include <vector>
 #include "main/process.hpp"
+#include "toolchain.hpp"
 
 namespace anvil {
     namespace fs = std::filesystem;
@@ -10,10 +12,11 @@ namespace anvil {
     class ScriptCompiler {
         fs::path sourceDir;
         fs::path buildDir;
+        std::unique_ptr<Toolchain> toolchain;
 
     public:
-        ScriptCompiler(fs::path  src, fs::path  build)
-            : sourceDir(std::move(src)), buildDir(std::move(build)) {}
+        ScriptCompiler(fs::path src, fs::path build)
+            : sourceDir(std::move(src)), buildDir(std::move(build)), toolchain(std::make_unique<ClangToolchain>()) {}
 
         [[nodiscard]] fs::path compile(const fs::path& userScript) const {
             fs::create_directories(buildDir);
@@ -23,11 +26,14 @@ namespace anvil {
             runnerExe += ".exe";
 #endif
             const fs::path driverSrc = sourceDir / "anvil" / "driver.cpp";
-            std::string cmd = "clang++ -std=c++20";
-            cmd += " -I " + sourceDir.string();
-            cmd += " " + driverSrc.string();
-            cmd += " " + userScript.string();
-            cmd += " -o " + runnerExe.string();
+
+            std::vector<std::string> flags = {
+                "-std=c++20",
+                "-I " + sourceDir.string(),
+                driverSrc.string()
+            };
+
+            std::string cmd = toolchain->getCompileCommand(userScript, runnerExe, flags);
 
             if (!exec(cmd)) {
                 throw std::runtime_error("Failed to compile build script");
