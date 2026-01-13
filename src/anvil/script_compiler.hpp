@@ -36,6 +36,7 @@ namespace anvil {
             std::vector<std::string> flags = {
                 "-std=c++20",
                 "-I " + sourceDir.string(),
+                "-DANVIL_API_V2",
                 driverSrc.string()
             };
 

@@ -54,6 +54,11 @@ jobs:
           ./${{ matrix.anvilw }} build
         shell: bash
 
+      - name: Anvil Test
+        run: |
+          ./${{ matrix.anvilw }} test
+        shell: bash
+
       - name: Package Release
         run: |
           mkdir staging

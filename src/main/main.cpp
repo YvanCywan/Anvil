@@ -5,6 +5,7 @@
 #include "build_command.hpp"
 #include "clean_command.hpp"
 #include "run_command.hpp"
+#include "test_command.hpp"
 
 int main(int argc, char *argv[]) {
     std::cout << "[Anvil] Starting..." << std::endl;
@@ -12,6 +13,7 @@ int main(int argc, char *argv[]) {
     registry.registerCommand(std::make_unique<anvil::BuildCommand>());
     registry.registerCommand(std::make_unique<anvil::CleanCommand>());
     registry.registerCommand(std::make_unique<anvil::RunCommand>());
+    registry.registerCommand(std::make_unique<anvil::TestCommand>());
 
 
     if (argc < 2) {
