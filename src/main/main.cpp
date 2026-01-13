@@ -6,6 +6,7 @@
 #include "clean_command.hpp"
 
 int main(int argc, char *argv[]) {
+    std::cout << "[Anvil] Starting..." << std::endl;
     anvil::CommandRegistry registry;
     registry.registerCommand(std::make_unique<anvil::BuildCommand>());
     registry.registerCommand(std::make_unique<anvil::CleanCommand>());
