@@ -110,7 +110,7 @@ jobs:
       - name: Stage Artifacts
         run: |
           mkdir release_assets
-          find artifacts -name "*.zip.zip" -exec mv {} release_assets/ \;
+          find artifacts/bin -name "*.zip.zip" -exec mv {} release_assets/ \;
           ls -R release_assets
 
       - name: Create Git Tag
@@ -129,6 +129,7 @@ jobs:
         with:
           tag_name: v${{ needs.calculate-version.outputs.version }}
           name: Release v${{ needs.calculate-version.outputs.version }}
-          files: release_assets/*
+          files: release_assets/*.zip
+          fail_on_unmatched_files: true
           make_latest: true
           generate_release_notes: true
