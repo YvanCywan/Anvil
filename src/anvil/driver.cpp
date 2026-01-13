@@ -1,6 +1,7 @@
 #include "api.hpp"
 #include "ninja.hpp"
 #include "dependency_manager.hpp"
+#include "pkg.hpp"
 #include <iostream>
 #include <filesystem>
 #include <vector>
@@ -76,6 +77,15 @@ int main(int argc, char* argv[]) {
     if (missingSources) {
         return 1;
     }
+
+    // --- NEW: Resolve Dependencies ---
+    try {
+        anvil::PackageManager pkgMgr(rootDir / ".anvil" / "libraries");
+        pkgMgr.resolve(project);
+    } catch (const std::exception& e) {
+        return 1;
+    }
+    // ---------------------------------
 
     anvil::DependencyManager deps(rootDir / ".anvil" / "tools");
 
