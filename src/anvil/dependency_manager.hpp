@@ -41,15 +41,23 @@ namespace anvil {
             fs::path zipPath = toolsDir / "ninja.zip";
 
 #ifdef _WIN32
-            std::string downloadCmd = "powershell -Command \"Invoke-WebRequest -Uri '" + url + "' -OutFile '" + zipPath.string() + "'\"";
-            if (!exec(downloadCmd)) {
-                throw std::runtime_error("Failed to download Ninja");
+            // Use a temporary powershell script to avoid quoting issues
+            fs::path scriptPath = toolsDir / "download_ninja.ps1";
+            {
+                std::ofstream scriptFile(scriptPath);
+                scriptFile << "$ProgressPreference = 'SilentlyContinue'\n";
+                scriptFile << "Invoke-WebRequest -Uri '" << url << "' -OutFile '" << zipPath.string() << "'\n";
+                scriptFile << "if ($?) { Expand-Archive -Path '" << zipPath.string() << "' -DestinationPath '" << toolsDir.string() << "' -Force }\n";
+                scriptFile << "if (!$?) { exit 1 }\n";
             }
 
-            std::string unzipCmd = "powershell -Command \"Expand-Archive -Path '" + zipPath.string() + "' -DestinationPath '" + toolsDir.string() + "' -Force\"";
-            if (!exec(unzipCmd)) {
-                throw std::runtime_error("Failed to unzip Ninja");
+            std::string cmd = "powershell -ExecutionPolicy Bypass -File \"" + scriptPath.string() + "\"";
+
+            if (!exec(cmd)) {
+                fs::remove(scriptPath);
+                throw std::runtime_error("Failed to download/unzip Ninja via PowerShell");
             }
+            fs::remove(scriptPath);
 #else
             std::string cmd = "curl -L -o " + zipPath.string() + " " + url;
             if (!exec(cmd)) {
