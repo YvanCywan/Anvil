@@ -95,10 +95,19 @@ namespace anvil {
                 throw std::runtime_error("Python not found");
             }
 
-            conanCmd = pythonCmd + " -m conans.conan";
+            // Try 'python -m conan' (Conan 2.0 standard)
+            conanCmd = pythonCmd + " -m conan";
             std::string checkCmd = make_env_command(conanCmd + " --version > /dev/null 2>&1");
 
             if (std::system(checkCmd.c_str()) == 0) {
+                return;
+            }
+
+            // Try 'python -m conans.conan' (Legacy/Alternative)
+            std::string legacyCmd = pythonCmd + " -m conans.conan";
+            std::string checkLegacy = make_env_command(legacyCmd + " --version > /dev/null 2>&1");
+            if (std::system(checkLegacy.c_str()) == 0) {
+                conanCmd = legacyCmd;
                 return;
             }
 
@@ -116,8 +125,14 @@ namespace anvil {
                 throw std::runtime_error("Conan installation failed");
             }
 
-            if (std::system(checkCmd.c_str()) != 0) {
+            // Verify again
+            if (std::system(checkCmd.c_str()) == 0) {
+                // conanCmd is already set to 'python -m conan'
+            } else if (std::system(checkLegacy.c_str()) == 0) {
+                conanCmd = legacyCmd;
+            } else {
                 std::cerr << "[Anvil Error] Conan installed but failed to run from local environment." << std::endl;
+                // Debug output
                 std::string debugCmd = make_env_command(conanCmd + " --version");
                 std::system(debugCmd.c_str());
                 throw std::runtime_error("Conan not working after local installation");
