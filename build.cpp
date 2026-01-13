@@ -14,6 +14,7 @@ void configure(anvil::Project& project) {
         app.add_link_flag("-static");
 #endif
     });
+
     project.add_test("anvil_tests", [](anvil::CppApplication& app) {
         app.standard = anvil::CppStandard::CPP_20;
         app.add_source("src/test/test_main.cpp");

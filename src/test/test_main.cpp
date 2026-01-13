@@ -1,11 +1,20 @@
-#include <iostream>
-#include <cassert>
+#include "anvil/test.hpp"
+#include "main/app.hpp"
 
-int main() {
-    std::cout << "Running tests..." << std::endl;
+class AppTests : public anvil::TestSuite {
+public:
+    void testNoArgs() {
+        char* argv[] = { (char*)"anvil" };
+        int result = anvil::App::run(1, argv);
+        ANVIL_ASSERT_EQUALS(0, result);
+    }
 
-    assert(1 + 1 == 2);
+    void testUnknownCommand() {
+        char* argv[] = { (char*)"anvil", (char*)"unknown" };
+        int result = anvil::App::run(2, argv);
+        ANVIL_ASSERT_EQUALS(1, result);
+    }
+};
 
-    std::cout << "All tests passed!" << std::endl;
-    return 0;
-}
+ANVIL_TEST(AppTests, testNoArgs)
+ANVIL_TEST(AppTests, testUnknownCommand)
