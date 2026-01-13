@@ -3,12 +3,28 @@
 #include "dependency_manager.hpp"
 #include <iostream>
 #include <filesystem>
+#include <vector>
+#include <string>
 
 extern "C" void configure(anvil::Project& project);
 
 namespace fs = std::filesystem;
 
 int main(int argc, char* argv[]) {
+    bool runAfterBuild = false;
+    std::vector<std::string> runArgs;
+
+    // Simple argument parsing
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "--run") {
+            runAfterBuild = true;
+        } else if (runAfterBuild) {
+            // Collect arguments for the target application
+            runArgs.push_back(arg);
+        }
+    }
+
     anvil::Project project;
     
     configure(project);
@@ -63,7 +79,31 @@ int main(int argc, char* argv[]) {
 
         std::cout << "[Anvil] Executing Ninja..." << std::endl;
         std::string cmd = ninjaExe.string();
-        return std::system(cmd.c_str());
+        int buildResult = std::system(cmd.c_str());
+
+        if (buildResult != 0) {
+            return buildResult;
+        }
+
+        if (runAfterBuild) {
+            fs::path binPath = rootDir / "bin" / project.application.name;
+#ifdef _WIN32
+            binPath += ".exe";
+#endif
+            if (fs::exists(binPath)) {
+                std::cout << "[Anvil] Running " << project.application.name << "..." << std::endl;
+                std::string runCmd = binPath.string();
+                for (const auto& arg : runArgs) {
+                    runCmd += " " + arg;
+                }
+                return std::system(runCmd.c_str());
+            } else {
+                std::cerr << "[Anvil Error] Executable not found: " << binPath << std::endl;
+                return 1;
+            }
+        }
+
+        return 0;
 
     } catch (const std::exception& e) {
         std::cerr << "[Anvil Error] " << e.what() << std::endl;
