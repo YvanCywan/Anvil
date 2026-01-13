@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <fmt/core.h>
 
 namespace anvil {
     class RunCommand : public Command {
@@ -28,12 +29,12 @@ namespace anvil {
             }
 
             if (!fs::exists(userScript)) {
-                std::cerr << "Error: build.cpp not found." << std::endl;
+                fmt::print(stderr, "Error: build.cpp not found.\n");
                 return 1;
             }
 
             try {
-                std::cout << "[Anvil] Compiling Build Script..." << std::endl;
+                fmt::print("[Anvil] Compiling Build Script...\n");
 
                 std::unique_ptr<Toolchain> toolchain;
                 const char* env_compiler = std::getenv("ANVIL_SCRIPT_COMPILER");
@@ -46,7 +47,7 @@ namespace anvil {
                 ScriptCompiler compiler(includeDir, rootDir / ".anvil", std::move(toolchain));
                 fs::path runner = compiler.compile(userScript);
 
-                std::cout << "[Anvil] Loading..." << std::endl;
+                fmt::print("[Anvil] Loading...\n");
 
                 std::string cmd = runner.string() + " --run";
                 for (const auto& arg : args) {
@@ -55,7 +56,7 @@ namespace anvil {
 
                 return std::system(cmd.c_str());
             } catch (const std::exception &e) {
-                std::cerr << "[Anvil Error] " << e.what() << std::endl;
+                fmt::print(stderr, "[Anvil Error] {}\n", e.what());
                 return 1;
             }
         }

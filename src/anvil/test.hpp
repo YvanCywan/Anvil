@@ -44,7 +44,7 @@ namespace anvil {
                 std::cout << "[Suite] " << suiteName << std::endl;
 
                 for (const auto& test : suiteInfo.tests) {
-                    std::cout << "  [Test] " << test.name << "... ";
+                    std::cout << "  [Test] " << test.name << "... \n";
 
                     std::unique_ptr<TestSuite> instance(suiteInfo.factory());
                     try {

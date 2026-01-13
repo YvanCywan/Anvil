@@ -5,6 +5,8 @@
 #include <vector>
 #include "main/process.hpp"
 #include "toolchain.hpp"
+#include <iostream>
+#include <fmt/core.h>
 
 namespace anvil {
     namespace fs = std::filesystem;
@@ -46,7 +48,7 @@ namespace anvil {
 
             std::string cmd = toolchain->getCompileCommand(userScript, runnerExe, flags);
 
-            std::cout << "[Anvil] Compiling build script with: " << toolchain->getCompiler() << std::endl;
+            fmt::print("[Anvil] Compiling build script with: {}\n", toolchain->getCompiler());
 
             if (!exec(cmd)) {
                 throw std::runtime_error("Failed to compile build script");

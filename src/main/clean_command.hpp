@@ -2,6 +2,7 @@
 #include "cli.hpp"
 #include <filesystem>
 #include <iostream>
+#include <fmt/core.h>
 
 namespace fs = std::filesystem;
 
@@ -23,12 +24,12 @@ namespace anvil {
 
             if (fs::exists(buildDir)) {
                 fs::remove_all(buildDir);
-                std::cout << "[Anvil] Cleaned build artifacts." << std::endl;
+                fmt::print("[Anvil] Cleaned build artifacts.\n");
             }
 
             if (fs::exists(anvilDir)) {
                 fs::remove_all(anvilDir);
-                std::cout << "[Anvil] Cleaned configuration." << std::endl;
+                fmt::print("[Anvil] Cleaned configuration.\n");
             }
 
             return 0;
