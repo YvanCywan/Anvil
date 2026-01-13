@@ -17,9 +17,9 @@ namespace anvil {
         }
 
         int execute(const std::vector<std::string> &args, const std::string &exePath) override {
-            fs::path rootDir = fs::current_path();
-            fs::path buildDir = rootDir / ".anvil_build";
-            fs::path anvilDir = rootDir / ".anvil";
+            const fs::path rootDir = fs::current_path();
+            const fs::path buildDir = rootDir / ".anvil_build";
+            const fs::path anvilDir = rootDir / ".anvil";
 
             if (fs::exists(buildDir)) {
                 fs::remove_all(buildDir);

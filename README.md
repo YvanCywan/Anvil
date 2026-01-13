@@ -78,6 +78,14 @@ Now, you can build your project by running the wrapper:
 
 The final executable will be placed in the `bin/` directory.
 
+### 4. Clean the Build
+
+To remove build artifacts and temporary files:
+
+```bash
+./anvilw clean
+```
+
 ### Example Project
 
 For a complete working example, check out the **[Anvil Demo Project](https://github.com/YvanCywan/anvil_demo)**.
