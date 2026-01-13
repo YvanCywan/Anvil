@@ -61,6 +61,19 @@ if not exist "%ANVIL_BIN%" (
 :exec
 :: --- Execute ---
 echo [anvilw] executing anvil: "%ANVIL_BIN%"
+
+:: Attempt to patch missing DLLs from MinGW if available
+where g++ >nul 2>&1
+if %errorlevel% equ 0 (
+    for /f "delims=" %%i in ('where g++') do set "GXX_BIN=%%~dpi"
+)
+
+if defined GXX_BIN (
+    if not exist "%ANVIL_HOME%\bin\libstdc++-6.dll" if exist "%GXX_BIN%libstdc++-6.dll" copy "%GXX_BIN%libstdc++-6.dll" "%ANVIL_HOME%\bin\" >nul
+    if not exist "%ANVIL_HOME%\bin\libgcc_s_seh-1.dll" if exist "%GXX_BIN%libgcc_s_seh-1.dll" copy "%GXX_BIN%libgcc_s_seh-1.dll" "%ANVIL_HOME%\bin\" >nul
+    if not exist "%ANVIL_HOME%\bin\libwinpthread-1.dll" if exist "%GXX_BIN%libwinpthread-1.dll" copy "%GXX_BIN%libwinpthread-1.dll" "%ANVIL_HOME%\bin\" >nul
+)
+
 "%ANVIL_BIN%" %*
 if %errorlevel% neq 0 (
     echo [anvilw] anvil exited with code %errorlevel%
