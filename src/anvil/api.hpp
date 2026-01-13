@@ -43,32 +43,25 @@ namespace anvil {
         CppApplication application;
 
         void add_anvil_include(CppApplication& app) {
-            if (std::filesystem::exists("src/anvil/test.hpp")) {
-                // Self-hosting: use local src directory
+            // Always add "src" if it exists, so user code can include its own headers
+            if (std::filesystem::exists("src")) {
                 app.add_include("src");
+            }
+
+            if (std::filesystem::exists("src/anvil/test.hpp")) {
+                // Self-hosting: we already added "src", which contains anvil/test.hpp
             } else {
                 // Consumer project: find headers in .anvil/wrapper
                 std::string wrapperDir = ".anvil/wrapper";
-                bool found = false;
                 if (std::filesystem::exists(wrapperDir)) {
                     for (const auto& entry : std::filesystem::directory_iterator(wrapperDir)) {
                         if (entry.is_directory()) {
                             std::string includePath = (entry.path() / "include").string();
                             if (std::filesystem::exists(includePath + "/anvil/test.hpp")) {
                                 app.add_include(includePath);
-                                found = true;
                                 break;
                             }
                         }
-                    }
-                }
-                if (!found) {
-                    // Fallback or warning? For now, just try adding src in case user has custom setup
-                    // But don't add it blindly if it doesn't exist?
-                    // The original code added "src" blindly.
-                    // Let's add "src" if it exists, otherwise we might fail.
-                    if (std::filesystem::exists("src")) {
-                        app.add_include("src");
                     }
                 }
             }
