@@ -26,7 +26,7 @@ if "%ANVIL_VERSION%"=="latest" (
 )
 
 :: --- Define Cache Paths ---
-set "ANVIL_HOME=%USERPROFILE%\.anvil\wrapper\%ANVIL_VERSION%"
+set "ANVIL_HOME=.anvil\wrapper\%ANVIL_VERSION%"
 set "ANVIL_BIN=%ANVIL_HOME%\bin\anvil.exe"
 set "TEMP_ZIP=%ANVIL_HOME%\anvil.zip"
 
