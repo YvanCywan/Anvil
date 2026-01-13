@@ -110,9 +110,8 @@ jobs:
       - name: Stage Artifacts
         run: |
           mkdir release_assets
-          find artifacts -name "*.zip.zip" -exec mv {} release_assets/ \;
+          find artifacts -name "*.zip" -exec mv {} release_assets/ \;
           ls -R release_assets
-          ls artifacts
 
       - name: Create Git Tag
         run: |
