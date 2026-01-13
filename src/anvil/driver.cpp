@@ -18,6 +18,20 @@ int main(int argc, char* argv[]) {
     fs::path rootDir = fs::current_path();
     std::cout << "[Anvil] Working Directory: " << rootDir << std::endl;
 
+    // Verify sources exist
+    bool missingSources = false;
+    for (const auto& src : project.application.sources) {
+        fs::path srcPath = rootDir / src;
+        if (!fs::exists(srcPath)) {
+            std::cerr << "[Anvil Error] Source file not found: " << srcPath << std::endl;
+            missingSources = true;
+        }
+    }
+
+    if (missingSources) {
+        return 1;
+    }
+
     anvil::DependencyManager deps(rootDir / ".anvil" / "tools");
 
     try {
