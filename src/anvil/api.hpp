@@ -19,10 +19,12 @@ namespace anvil {
         std::vector<std::string> sources;
         std::vector<std::string> include_dirs;
         std::vector<std::string> defines;
+        std::vector<std::string> link_flags;
 
         void add_source(const std::string& src) { sources.push_back(src); }
         void add_include(const std::string& dir) { include_dirs.push_back(dir); }
         void add_define(const std::string& def) { defines.push_back(def); }
+        void add_link_flag(const std::string& flag) { link_flags.push_back(flag); }
         void set_compiler(CompilerId id) { compilerId = id; }
     };
 

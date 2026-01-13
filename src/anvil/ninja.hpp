@@ -30,7 +30,7 @@ namespace anvil {
             out << "  description = CXX $out\n\n";
 
             out << "rule link\n";
-            out << "  command = " << compiler << " $FLAGS $in -o $out\n";
+            out << "  command = " << compiler << " $FLAGS $in -o $out $LINK_FLAGS\n";
             out << "  description = LINK $out\n\n";
 
             std::vector<std::string> object_files;
@@ -57,10 +57,14 @@ namespace anvil {
                 binary += ".exe";
             #endif
 
+            std::string link_flags;
+            for (const auto& flag : app.link_flags) link_flags += " " + flag;
+
             out << "build " << binary << ": link";
             for (const auto& obj : object_files) out << " " << obj;
             out << "\n";
-            
+            out << "  LINK_FLAGS = " << link_flags << "\n";
+
             out << "default " << binary << "\n";
         }
     };
