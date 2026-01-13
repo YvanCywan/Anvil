@@ -16,6 +16,7 @@ int main(int argc, char* argv[]) {
     bool runTests = false;
     std::vector<std::string> runArgs;
 
+    // Simple argument parsing
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "--run") {
@@ -23,6 +24,7 @@ int main(int argc, char* argv[]) {
         } else if (arg == "--test") {
             runTests = true;
         } else if (runAfterBuild) {
+            // Collect arguments for the target application
             runArgs.push_back(arg);
         }
     }
@@ -36,10 +38,12 @@ int main(int argc, char* argv[]) {
     fs::path rootDir = fs::current_path();
     std::cout << "[Anvil] Working Directory: " << rootDir << std::endl;
 
+    // Handle legacy mode where targets might be empty but application is set
     if (project.targets.empty() && !project.application.name.empty()) {
         project.targets.push_back(project.application);
     }
 
+    // Verify sources exist for all targets
     bool missingSources = false;
     for (const auto& target : project.targets) {
         for (const auto& src : target.sources) {
@@ -56,6 +60,7 @@ int main(int argc, char* argv[]) {
                 } else {
                     std::cerr << "Parent directory " << parent << " does not exist." << std::endl;
 
+                    // Check if src directory exists at all
                     fs::path srcDir = rootDir / "src";
                     if (fs::exists(srcDir)) {
                          std::cerr << "Contents of " << srcDir << ":" << std::endl;
@@ -73,12 +78,14 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    // --- NEW: Resolve Dependencies ---
     try {
         anvil::PackageManager pkgMgr(rootDir / ".anvil" / "libraries");
         pkgMgr.resolve(project);
     } catch (const std::exception& e) {
         return 1;
     }
+    // ---------------------------------
 
     anvil::DependencyManager deps(rootDir / ".anvil" / "tools");
 
@@ -132,6 +139,7 @@ int main(int argc, char* argv[]) {
         }
 
         if (runAfterBuild) {
+            // Find the first executable target to run
             const anvil::CppApplication* targetToRun = nullptr;
             for (const auto& target : project.targets) {
                 if (target.type == anvil::AppType::Executable) {

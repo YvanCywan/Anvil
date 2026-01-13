@@ -4,7 +4,6 @@
 #include "process.hpp"
 #include <filesystem>
 #include <iostream>
-#include <fmt/core.h>
 
 namespace fs = std::filesystem;
 
@@ -33,12 +32,12 @@ namespace anvil {
             }
 
             if (!fs::exists(userScript)) {
-                fmt::print(stderr, "Error: build.cpp not found.\n");
+                std::cerr << "Error: build.cpp not found." << std::endl;
                 return 1;
             }
 
             try {
-                fmt::print("[Anvil] Compiling Build Script...\n");
+                std::cout << "[Anvil] Compiling Build Script..." << std::endl;
 
                 // Check for compiler override via environment variable
                 std::unique_ptr<Toolchain> toolchain;
@@ -52,10 +51,10 @@ namespace anvil {
                 ScriptCompiler compiler(includeDir, rootDir / ".anvil", std::move(toolchain));
                 fs::path runner = compiler.compile(userScript);
 
-                fmt::print("[Anvil] Loading...\n");
+                std::cout << "[Anvil] Loading..." << std::endl;
                 exec(runner.string());
             } catch (const std::exception &e) {
-                fmt::print(stderr, "[Anvil Error] {}\n", e.what());
+                std::cerr << "[Anvil Error] " << e.what() << std::endl;
                 return 1;
             }
 
