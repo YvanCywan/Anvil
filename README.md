@@ -177,6 +177,46 @@ project.add_executable("my_app", [](anvil::CppApplication& app) {
 });
 ```
 
+## Testing Framework
+
+Anvil includes a lightweight, built-in testing framework inspired by JUnit and xUnit. It allows you to define test suites and assertions easily.
+
+### Writing Tests
+
+Tests are typically placed in `src/test/`. Anvil automatically discovers `.cpp` files in this directory.
+
+```cpp
+#include "anvil/test.hpp"
+#include "my_class.hpp"
+
+class MyTests : public anvil::TestSuite {
+public:
+    void testAddition() {
+        int result = 2 + 2;
+        ANVIL_ASSERT_EQUALS(4, result);
+    }
+
+    void testCondition() {
+        bool success = true;
+        ANVIL_ASSERT(success);
+    }
+};
+
+// Register the tests
+ANVIL_TEST(MyTests, testAddition)
+ANVIL_TEST(MyTests, testCondition)
+```
+
+### Running Tests
+
+To run your tests, use the `test` command:
+
+```bash
+./anvilw test
+```
+
+This will compile your test target (e.g., `my_tests`) and execute the test runner. The default test runner (injected automatically) will execute all registered tests and report the results.
+
 ### Environment Variables
 
 *   `ANVIL_SCRIPT_COMPILER`: Set the compiler used to bootstrap the `build.cpp` script.
