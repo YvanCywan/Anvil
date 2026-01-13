@@ -17,6 +17,7 @@ Anvil is a modern, C++-based build system designed to be simple, extensible, and
 
 *   A C++ compiler (Clang is currently hardcoded in the script compiler, so ensure `clang++` is in your PATH).
 *   `unzip`, `curl` or `wget` (for the wrapper to download Anvil).
+*   `Ninja` also needs to be present on the system.
 
 ### Building the Project
 
