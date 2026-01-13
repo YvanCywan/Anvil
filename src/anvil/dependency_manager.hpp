@@ -40,20 +40,27 @@ namespace anvil {
 
             fs::path zipPath = toolsDir / "ninja.zip";
 
+#ifdef _WIN32
+            std::string downloadCmd = "powershell -Command \"Invoke-WebRequest -Uri '" + url + "' -OutFile '" + zipPath.string() + "'\"";
+            if (!exec(downloadCmd)) {
+                throw std::runtime_error("Failed to download Ninja");
+            }
+
+            std::string unzipCmd = "powershell -Command \"Expand-Archive -Path '" + zipPath.string() + "' -DestinationPath '" + toolsDir.string() + "' -Force\"";
+            if (!exec(unzipCmd)) {
+                throw std::runtime_error("Failed to unzip Ninja");
+            }
+#else
             std::string cmd = "curl -L -o " + zipPath.string() + " " + url;
             if (!exec(cmd)) {
                 throw std::runtime_error("Failed to download Ninja");
             }
 
-#ifdef _WIN32
-            cmd = "tar -xf " + zipPath.string() + " -C " + toolsDir.string();
-#else
             cmd = "unzip -o " + zipPath.string() + " -d " + toolsDir.string();
-#endif
-
             if (!exec(cmd)) {
                 throw std::runtime_error("Failed to unzip Ninja");
             }
+#endif
 
             fs::remove(zipPath);
 
