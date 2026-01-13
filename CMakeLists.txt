@@ -18,4 +18,5 @@ add_executable(Anvil_Dummy ${SRC_FILES}
         src/anvil/script_compiler.hpp
         src/main/clean_command.hpp
         src/main/run_command.hpp
+        src/test/test_1.cpp
 )

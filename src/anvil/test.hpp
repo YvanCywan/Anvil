@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <utility>
 #include <vector>
 #include <functional>
 #include <string>
@@ -31,8 +32,8 @@ namespace anvil {
         }
 
         void registerTest(const std::string& suiteName, const std::string& testName, std::function<TestSuite*()> factory, TestMethod method) {
-            suites[suiteName].factory = factory;
-            suites[suiteName].tests.push_back({testName, method});
+            suites[suiteName].factory = std::move(factory);
+            suites[suiteName].tests.push_back({testName, std::move(method)});
         }
 
         int runAll() {

@@ -3,6 +3,8 @@
 #include <vector>
 #include <functional>
 #include <map>
+#include <filesystem>
+#include <iostream>
 
 namespace anvil {
 
@@ -39,10 +41,21 @@ namespace anvil {
         // Legacy support for older versions of Anvil that might expect this member
         CppApplication application;
 
-        void add_executable(const std::string& name, std::function<void(CppApplication&)> config) {
+        void add_executable(const std::string& name, const std::function<void(CppApplication&)> &config) {
             CppApplication app;
             app.name = name;
             app.type = AppType::Executable;
+            app.standard = CppStandard::CPP_20;
+            app.add_include("src");
+
+            if (std::filesystem::exists("src/main/main.cpp")) {
+                app.add_source("src/main/main.cpp");
+            }
+
+#ifdef _WIN32
+            app.add_link_flag("-static");
+#endif
+
             config(app);
             targets.push_back(app);
 
@@ -56,6 +69,26 @@ namespace anvil {
             CppApplication app;
             app.name = name;
             app.type = AppType::Test;
+            app.standard = CppStandard::CPP_20;
+            app.add_include("src");
+
+            if (std::filesystem::exists("src/test/test_runner.cpp")) {
+                app.add_source("src/test/test_runner.cpp");
+            } else {
+                std::cerr << "Warning: src/test/test_runner.cpp not found!" << std::endl;
+            }
+
+            if (std::filesystem::exists("src/test")) {
+                for (const auto& entry : std::filesystem::recursive_directory_iterator("src/test")) {
+                    if (entry.path().extension() == ".cpp") {
+                        std::string path = entry.path().string();
+                        if (path.find("test_runner.cpp") == std::string::npos) {
+                             app.add_source(path);
+                        }
+                    }
+                }
+            }
+
             config(app);
             targets.push_back(app);
         }

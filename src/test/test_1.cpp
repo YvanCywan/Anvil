@@ -1,7 +1,7 @@
 #include "anvil/test.hpp"
 #include "main/app.hpp"
 
-class AppTests : public anvil::TestSuite {
+class DupeTests : public anvil::TestSuite {
 public:
     void testNoArgs() {
         char* argv[] = { (char*)"anvil" };
@@ -16,5 +16,5 @@ public:
     }
 };
 
-ANVIL_TEST(AppTests, testNoArgs)
-ANVIL_TEST(AppTests, testUnknownCommand)
+ANVIL_TEST(DupeTests, testNoArgs)
+ANVIL_TEST(DupeTests, testUnknownCommand)
