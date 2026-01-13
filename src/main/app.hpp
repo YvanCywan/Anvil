@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <fmt/core.h>
 #include "cli.hpp"
 #include "build_command.hpp"
 #include "clean_command.hpp"
@@ -12,7 +13,7 @@ namespace anvil {
     class App {
     public:
         static int run(int argc, char *argv[]) {
-            std::cout << "[Anvil] Starting..." << std::endl;
+            fmt::print("[Anvil] Starting...\n");
             CommandRegistry registry;
             registry.registerCommand(std::make_unique<BuildCommand>());
             registry.registerCommand(std::make_unique<CleanCommand>());

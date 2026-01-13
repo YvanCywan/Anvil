@@ -12,6 +12,7 @@ At its core, Anvil is a single executable that compiles and runs a `build.cpp` f
 *   **Automatic Toolchain Management**: Anvil automatically downloads and manages `ninja` for high-performance builds.
 *   **Cross-Platform**: Works on Linux, macOS, and Windows.
 *   **Extensible**: Easily add new commands and functionality to the core Anvil executable.
+*   **Dependency Management**: Built-in integration with Conan for seamless package management.
 
 ## How It Works
 
@@ -176,6 +177,31 @@ project.add_executable("my_app", [](anvil::CppApplication& app) {
     app.add_link_flag("-lpthread");
 });
 ```
+
+## Dependency Management
+
+Anvil integrates with **Conan** to manage external dependencies. You can declare dependencies directly in your `build.cpp`, and Anvil will automatically download, install, and link them.
+
+### Prerequisites
+*   **Conan**: You must have `conan` installed and available in your system PATH.
+
+### Adding Dependencies
+Use `app.add_dependency()` to specify a Conan package reference.
+
+```cpp
+project.add_executable("my_app", [](anvil::CppApplication& app) {
+    // Add Boost
+    app.add_dependency("boost/1.83.0");
+    
+    // Add JSON library
+    app.add_dependency("nlohmann_json/3.11.2");
+});
+```
+
+Anvil will:
+1.  Run `conan install` to download the packages.
+2.  Deploy the artifacts (headers and libraries) to `.anvil/libraries`.
+3.  Automatically add the include directories and link static libraries to your target.
 
 ## Testing Framework
 

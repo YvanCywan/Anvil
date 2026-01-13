@@ -53,9 +53,10 @@ namespace anvil {
         void install_dependency(const std::string& dep) {
             // We use --deployer=full_deploy to get raw artifacts
             // We use --build=missing to ensure binaries exist
+            // Quote paths to handle spaces
             std::string cmd = "conan install --requires=" + dep +
                               " --deployer=full_deploy" +
-                              " --output-folder=" + libDir.string() +
+                              " --output-folder=\"" + libDir.string() + "\"" +
                               " --build=missing -v quiet";
 
             std::cout << "  >> Installing " << dep << "..." << std::endl;
