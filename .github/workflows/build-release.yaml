@@ -34,19 +34,21 @@ jobs:
           - os: ubuntu-latest
             artifact_name: anvil-linux-x64.zip
             binary_name: anvil
-            bootstrap_script: ./bootstrap.sh
+            anvilw: anvilw
           - os: macos-latest
             artifact_name: anvil-macos-arm64.zip
             binary_name: anvil
-            bootstrap_script: ./bootstrap.sh
+            anvilw: anvilw
           - os: windows-latest
             artifact_name: anvil-windows-x64.zip
             binary_name: anvil.exe
-            bootstrap_script: .\bootstrap.bat
+            anvilw: anvilw.bat
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+#     Goal is to remove Ninja as a direct dependency and have anvil handle the install
 
       - name: Install Ninja (Linux)
         if: matrix.os == 'ubuntu-latest'
@@ -64,12 +66,9 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: choco install ninja
 
-      - name: Bootstrap V0
-        run: ${{ matrix.bootstrap_script }}
-
-      - name: Build V1 (Self-Hosted)
+      - name: Anvil Build
         run: |
-          ./bin/${{ matrix.binary_name }} build
+          ./${{ matrix.anvilw }} build
         shell: bash
 
       - name: Package Release
