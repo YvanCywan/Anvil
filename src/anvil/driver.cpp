@@ -11,8 +11,10 @@ int main(int argc, char* argv[]) {
 
     std::cout << "[Anvil] Graph Loaded: " << project.name << std::endl;
     
-    anvil::NinjaWriter writer("build.ninja");
-    writer.generate(project);
+    {
+        anvil::NinjaWriter writer("build.ninja");
+        writer.generate(project);
+    }
 
     std::cout << "[Anvil] Executing Ninja..." << std::endl;
     return std::system("ninja");
