@@ -40,10 +40,10 @@ jobs:
             artifact_name: anvil-macos-arm64.zip
             binary_name: anvil
             anvilw: anvilw
-          - os: windows-latest
-            artifact_name: anvil-windows-x64.zip
-            binary_name: anvil.exe
-            anvilw: anvilw.bat
+#          - os: windows-latest
+#            artifact_name: anvil-windows-x64.zip
+#            binary_name: anvil.exe
+#            anvilw: anvilw.bat
 
     steps:
       - name: Checkout Code
