@@ -45,7 +45,12 @@ namespace anvil {
                 throw std::runtime_error("Failed to download Ninja");
             }
 
+#ifdef _WIN32
+            cmd = "tar -xf " + zipPath.string() + " -C " + toolsDir.string();
+#else
             cmd = "unzip -o " + zipPath.string() + " -d " + toolsDir.string();
+#endif
+
             if (!exec(cmd)) {
                 throw std::runtime_error("Failed to unzip Ninja");
             }
