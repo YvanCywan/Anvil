@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+set -e
+
+# --- Load Properties ---
+WRAPPER_PROP="wrapper/anvil-wrapper.properties"
+if [ ! -f "$WRAPPER_PROP" ]; then
+    echo "[Error] Cannot find $WRAPPER_PROP"
+    exit 1
+fi
+
+# Helper to read property values (handles Windows line endings)
+get_prop() {
+    grep "^$1=" "$WRAPPER_PROP" | cut -d'=' -f2 | tr -d '\r'
+}
+
+ANVIL_VERSION=$(get_prop "anvilVersion")
+REPO_URL=$(get_prop "repoUrl")
+
+if [ -z "$ANVIL_VERSION" ] || [ -z "$REPO_URL" ]; then
+    echo "[Error] anvilVersion or repoUrl missing in properties file."
+    exit 1
+fi
+
+# --- Determine Artifact & URL ---
+OS="$(uname -s)"
+case "$OS" in
+    Linux)  ARTIFACT_NAME="anvil-linux-x64.zip" ;;
+    Darwin) ARTIFACT_NAME="anvil-macos-arm64.zip" ;;
+    *) echo "Unsupported OS: $OS"; exit 1 ;;
+esac
+
+# Handle 'latest' vs specific version
+if [ "$ANVIL_VERSION" = "latest" ]; then
+    DOWNLOAD_URL="$REPO_URL/releases/latest/download/$ARTIFACT_NAME"
+else
+    DOWNLOAD_URL="$REPO_URL/releases/download/v$ANVIL_VERSION/$ARTIFACT_NAME"
+fi
+
+# --- Define Cache Paths ---
+# Stores binaries in ~/.anvil/wrapper/<version>/
+ANVIL_HOME=".anvil/wrapper/$ANVIL_VERSION"
+ANVIL_BIN="$ANVIL_HOME/bin/anvil"
+TEMP_ZIP="$ANVIL_HOME/anvil.zip"
+
+# --- Download & Install ---
+if [ ! -f "$ANVIL_BIN" ]; then
+    echo "[anvilw] Downloading Anvil ($ANVIL_VERSION)..."
+    mkdir -p "$ANVIL_HOME"
+
+    # Download using curl or wget
+    if command -v curl >/dev/null 2>&1; then
+        curl -L -o "$TEMP_ZIP" "$DOWNLOAD_URL"
+    elif command -v wget >/dev/null 2>&1; then
+        wget -O "$TEMP_ZIP" "$DOWNLOAD_URL"
+    else
+        echo "Error: Neither curl nor wget found."
+        exit 1
+    fi
+
+    # Verify download wasn't empty
+    if [ ! -s "$TEMP_ZIP" ]; then
+        echo "[Error] Download failed or file is empty."
+        rm -f "$TEMP_ZIP"
+        exit 1
+    fi
+
+    echo "[anvilw] Installing..."
+    unzip -q -o "$TEMP_ZIP" -d "$ANVIL_HOME"
+    rm "$TEMP_ZIP"
+    chmod +x "$ANVIL_BIN"
+fi
+
+# --- Execute ---
+# Pass all arguments ($@) to the actual binary
+exec "$ANVIL_BIN" "$@"

@@ -3,3 +3,6 @@ build.ninja
 .anvil/**/*
 .idea
 .idea/**/*
+# .gitignore
+!anvilw
+!anvilw.bat
