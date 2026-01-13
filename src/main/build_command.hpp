@@ -18,10 +18,18 @@ namespace anvil {
             return "Compiles and runs the build script";
         }
 
-        int execute(const std::vector<std::string> &args) override {
+        int execute(const std::vector<std::string> &args, const std::string &exePath) override {
             fs::path rootDir = fs::current_path();
             fs::path userScript = rootDir / "build.cpp";
-            fs::path srcDir = rootDir / "src";
+
+            // Derive include path from executable location
+            fs::path exeDir = fs::absolute(exePath).parent_path();
+            fs::path includeDir = exeDir.parent_path() / "include";
+
+            // Fallback for development environment (when running from bin/anvil inside the project)
+            if (!fs::exists(includeDir / "anvil" / "driver.cpp")) {
+                includeDir = rootDir / "src";
+            }
 
             if (!fs::exists(userScript)) {
                 std::cerr << "Error: build.cpp not found." << std::endl;
@@ -40,7 +48,7 @@ namespace anvil {
                      toolchain = std::make_unique<ClangToolchain>();
                 }
 
-                ScriptCompiler compiler(srcDir, rootDir / ".anvil", std::move(toolchain));
+                ScriptCompiler compiler(includeDir, rootDir / ".anvil", std::move(toolchain));
                 fs::path runner = compiler.compile(userScript);
 
                 std::cout << "[Anvil] Loading..." << std::endl;

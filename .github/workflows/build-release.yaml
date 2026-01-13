@@ -58,9 +58,13 @@ jobs:
         run: |
           mkdir staging
           mkdir staging/bin
+          mkdir staging/include
           
           # Copy the binary
           cp bin/${{ matrix.binary_name }} staging/bin/
+          
+          # Copy source files to include directory for distribution
+          cp -r src/* staging/include/
           
           cd staging
 

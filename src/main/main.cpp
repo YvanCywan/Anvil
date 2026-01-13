@@ -23,5 +23,5 @@ int main(int argc, char *argv[]) {
         args.emplace_back(argv[i]);
     }
 
-    return registry.execute(commandName, args);
+    return registry.execute(commandName, args, argv[0]);
 }

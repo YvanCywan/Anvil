@@ -14,7 +14,7 @@ namespace anvil {
 
         virtual std::string getDescription() const = 0;
 
-        virtual int execute(const std::vector<std::string> &args) = 0;
+        virtual int execute(const std::vector<std::string> &args, const std::string &exePath) = 0;
     };
 
     class CommandRegistry {
@@ -23,10 +23,10 @@ namespace anvil {
             commands[cmd->getName()] = std::move(cmd);
         }
 
-        int execute(const std::string &name, const std::vector<std::string> &args) {
+        int execute(const std::string &name, const std::vector<std::string> &args, const std::string &exePath) {
             auto it = commands.find(name);
             if (it != commands.end()) {
-                return it->second->execute(args);
+                return it->second->execute(args, exePath);
             }
             std::cerr << "Unknown command: " << name << std::endl;
             printHelp();
