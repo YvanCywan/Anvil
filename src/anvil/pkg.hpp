@@ -75,8 +75,13 @@ namespace anvil {
 
     private:
         std::string get_python_command() {
+#ifdef _WIN32
+            if (std::system("python --version > NUL 2>&1") == 0) return "python";
+            if (std::system("py --version > NUL 2>&1") == 0) return "py";
+#else
             if (std::system("python3 --version > /dev/null 2>&1") == 0) return "python3";
             if (std::system("python --version > /dev/null 2>&1") == 0) return "python";
+#endif
             return "";
         }
 
@@ -90,7 +95,11 @@ namespace anvil {
 
         void ensure_conan_installed() {
             // First check if conan is already in the path
+#ifdef _WIN32
+            if (std::system("conan --version > NUL 2>&1") == 0) {
+#else
             if (std::system("conan --version > /dev/null 2>&1") == 0) {
+#endif
                 conanCmd = "conan";
                 return;
             }
@@ -103,7 +112,11 @@ namespace anvil {
 
             // Try 'python -m conan' (Conan 2.0 standard)
             conanCmd = pythonCmd + " -m conan";
+#ifdef _WIN32
+            std::string checkCmd = make_env_command(conanCmd + " --version > NUL 2>&1");
+#else
             std::string checkCmd = make_env_command(conanCmd + " --version > /dev/null 2>&1");
+#endif
 
             if (std::system(checkCmd.c_str()) == 0) {
                 return;
@@ -111,7 +124,11 @@ namespace anvil {
 
             // Try 'python -m conans.conan' (Legacy/Alternative)
             std::string legacyCmd = pythonCmd + " -m conans.conan";
+#ifdef _WIN32
+            std::string checkLegacy = make_env_command(legacyCmd + " --version > NUL 2>&1");
+#else
             std::string checkLegacy = make_env_command(legacyCmd + " --version > /dev/null 2>&1");
+#endif
             if (std::system(checkLegacy.c_str()) == 0) {
                 conanCmd = legacyCmd;
                 return;
@@ -144,7 +161,11 @@ namespace anvil {
                 throw std::runtime_error("Conan not working after local installation");
             }
 
+#ifdef _WIN32
+            std::string profileCmd = make_env_command(conanCmd + " profile detect --force > NUL 2>&1");
+#else
             std::string profileCmd = make_env_command(conanCmd + " profile detect --force > /dev/null 2>&1");
+#endif
             std::system(profileCmd.c_str());
 
             std::cout << "[Anvil] Conan installed successfully." << std::endl;
