@@ -1,5 +1,6 @@
 #include "anvil/api.hpp"
 
+#ifndef ANVIL_API_V2
 // Legacy support for bootstrapping with Anvil 0.1.x
 void anvil::Project::add_executable(const std::string &name, std::function<void(CppApplication &)> config) {
     application.name = name;
