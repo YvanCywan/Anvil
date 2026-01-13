@@ -53,10 +53,25 @@ Here is a basic example for a simple "hello world" application:
 void configure(anvil::Project& project) {
     project.name = "MyAwesomeApp";
 
+    // Define an executable target
     project.add_executable("my_app", [](anvil::CppApplication& app) {
-        app.standard = anvil::CppStandard::CPP_20;
-        app.add_source("src/main.cpp");
-        app.add_include("include");
+        // Defaults provided by Anvil:
+        // - Standard: C++20
+        // - Includes: "src" directory (if exists)
+        // - Sources: "src/main/main.cpp" (if exists)
+        
+        // You can override defaults or add more configuration here:
+        // app.standard = anvil::CppStandard::CPP_17;
+        // app.set_compiler(anvil::CompilerId::GCC);
+    });
+    
+    // Define a test target
+    project.add_test("my_tests", [](anvil::CppApplication& app) {
+        // Defaults provided by Anvil:
+        // - Standard: C++20
+        // - Includes: "src" directory
+        // - Sources: Recursively adds all .cpp files in "src/test"
+        // - Test Runner: Automatically generates a main() entry point if src/test/test_runner.cpp is missing
     });
 }
 ```
@@ -124,11 +139,43 @@ This will produce the `anvil` executable in the `bin/` directory.
 
 You configure your build by calling methods on the `project` and `app` objects.
 
-*   `app.set_compiler(anvil::CompilerId)`: Choose between `GCC` and `Clang`.
-*   `app.add_source(path)`: Add a source file.
-*   `app.add_include(path)`: Add an include directory.
-*   `app.add_define(definition)`: Add a preprocessor definition.
-*   `app.add_link_flag(flag)`: Add a flag to be passed to the linker (e.g., `-static`).
+#### Default Behaviors
+Anvil provides sensible defaults to reduce boilerplate:
+*   **Executables**:
+    *   Sets C++ Standard to `CPP_20`.
+    *   Adds `src` to include paths.
+    *   Adds `src/main/main.cpp` to sources if it exists.
+    *   Links statically on Windows.
+*   **Tests**:
+    *   Sets C++ Standard to `CPP_20`.
+    *   Adds `src` to include paths.
+    *   Recursively adds all `.cpp` files in `src/test` to sources.
+    *   **Automatic Test Runner**: If `src/test/test_runner.cpp` is missing or empty, Anvil automatically generates a default test runner with a `main` function. To use a custom runner, simply create `src/test/test_runner.cpp` with your own implementation.
+
+#### Overriding Defaults
+The configuration lambda passed to `add_executable` or `add_test` runs *after* defaults are applied, allowing you to override them.
+
+```cpp
+project.add_executable("my_app", [](anvil::CppApplication& app) {
+    // Override C++ Standard
+    app.standard = anvil::CppStandard::CPP_17;
+
+    // Override Compiler
+    app.set_compiler(anvil::CompilerId::GCC); // Options: Clang, GCC, MSVC
+
+    // Add additional sources
+    app.add_source("src/utils.cpp");
+
+    // Add include directories
+    app.add_include("include");
+    
+    // Add preprocessor definitions
+    app.add_define("DEBUG_MODE");
+    
+    // Add linker flags
+    app.add_link_flag("-lpthread");
+});
+```
 
 ### Environment Variables
 
