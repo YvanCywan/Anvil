@@ -5,6 +5,8 @@
 #include <vector>
 #include <string>
 #include <cstdlib>
+#include <set>
+#include <algorithm>
 #include <fmt/core.h>
 
 namespace anvil {
@@ -23,29 +25,54 @@ namespace anvil {
         }
 
         void resolve(Project& project) {
-            for (auto& target : project.targets) {
-                if (target.dependencies.empty()) continue;
-
-                fmt::print("[Anvil] Resolving dependencies for {}...\n", target.name);
-
+            // 1. Collect all unique dependencies from all targets
+            std::set<std::string> all_deps_set;
+            for (const auto& target : project.targets) {
                 for (const auto& dep : target.dependencies) {
-                    install_dependency(dep);
+                    all_deps_set.insert(dep);
                 }
+            }
 
-                if (fs::exists(libDir / "full_deploy")) {
-                     for (const auto& entry : fs::recursive_directory_iterator(libDir / "full_deploy")) {
-                        if (entry.is_directory()) {
-                            if (entry.path().filename() == "include") {
-                                target.add_include(entry.path().string());
-                            } else if (entry.path().filename() == "lib") {
-                                for (const auto& lib : fs::directory_iterator(entry.path())) {
-                                    std::string ext = lib.path().extension().string();
-                                    if (ext == ".a" || ext == ".lib") {
-                                        target.add_link_flag(lib.path().string());
-                                    }
+            if (all_deps_set.empty()) {
+                return;
+            }
+
+            fmt::print("[Anvil] Resolving project dependencies...\n");
+
+            // 2. Install all unique dependencies
+            for (const auto& dep : all_deps_set) {
+                install_dependency(dep);
+            }
+
+            // 3. Find all include/lib paths from all installed dependencies
+            std::vector<std::string> include_paths;
+            std::vector<std::string> link_flags;
+            if (fs::exists(libDir / "full_deploy")) {
+                 for (const auto& entry : fs::recursive_directory_iterator(libDir / "full_deploy")) {
+                    if (entry.is_directory()) {
+                        if (entry.path().filename() == "include") {
+                            include_paths.push_back(entry.path().string());
+                        } else if (entry.path().filename() == "lib") {
+                            for (const auto& lib : fs::directory_iterator(entry.path())) {
+                                std::string ext = lib.path().extension().string();
+                                if (ext == ".a" || ext == ".lib") {
+                                    link_flags.push_back(lib.path().string());
                                 }
                             }
                         }
+                    }
+                }
+            }
+
+            // 4. Apply all found paths to ALL targets in the project
+            if (!include_paths.empty() || !link_flags.empty()) {
+                fmt::print("[Anvil] Linking dependencies to all targets.\n");
+                for (auto& target : project.targets) {
+                    for(const auto& p : include_paths) {
+                        target.add_include(p);
+                    }
+                    for(const auto& f : link_flags) {
+                        target.add_link_flag(f);
                     }
                 }
             }
@@ -56,6 +83,14 @@ namespace anvil {
             if (std::system("python3 --version > /dev/null 2>&1") == 0) return "python3";
             if (std::system("python --version > /dev/null 2>&1") == 0) return "python";
             return "";
+        }
+
+        std::string make_env_command(const std::string& cmd) {
+#ifdef _WIN32
+            return "set PYTHONPATH=" + conanEnvDir.string() + " && " + cmd;
+#else
+            return "PYTHONPATH=\"" + conanEnvDir.string() + "\" " + cmd;
+#endif
         }
 
         void ensure_conan_installed() {
@@ -93,17 +128,22 @@ namespace anvil {
 
             conanCmd = "\"" + conanExePath.string() + "\"";
 
-            std::string profileCmd = conanCmd + " profile detect --force > /dev/null 2>&1";
+            // Ensure profile exists (required for Conan 2.0)
+            // MUST use make_env_command so it finds 'conans' module
+            std::string profileCmd = make_env_command(conanCmd + " profile detect --force > /dev/null 2>&1");
             std::system(profileCmd.c_str());
 
             fmt::print("[Anvil] Conan installed successfully.\n");
         }
 
         void install_dependency(const std::string& dep) {
-            std::string cmd = conanCmd + " install --requires=" + dep +
-                              " --deployer=full_deploy" +
-                              " --output-folder=\"" + libDir.string() + "\"" +
-                              " --build=missing -v quiet";
+            // MUST use make_env_command so it finds 'conans' module
+            std::string cmd = make_env_command(
+                conanCmd + " install --requires=" + dep +
+                " --deployer=full_deploy" +
+                " --output-folder=\"" + libDir.string() + "\"" +
+                " --build=missing -v quiet"
+            );
 
             fmt::print("  >> Installing {}...\n", dep);
             int result = std::system(cmd.c_str());
