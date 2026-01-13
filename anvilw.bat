@@ -2,14 +2,14 @@
 setlocal
 
 :: --- Load Properties ---
-set "WRAPPER_PROP=wrapper\anvil-wrapper.properties"
+set "WRAPPER_PROP=%~dp0wrapper\anvil-wrapper.properties"
 
 if not exist "%WRAPPER_PROP%" (
     echo [Error] Cannot find %WRAPPER_PROP%
     exit /b 1
 )
 
-:: Read properties using PowerShell to handle CRLF and whitespace safely
+:: Read properties using PowerShell
 for /f "usebackq tokens=*" %%a in (`powershell -Command "Get-Content '%WRAPPER_PROP%' | Select-String 'anvilVersion=' | ForEach-Object { $_.ToString().Split('=')[1].Trim() }"`) do set ANVIL_VERSION=%%a
 for /f "usebackq tokens=*" %%a in (`powershell -Command "Get-Content '%WRAPPER_PROP%' | Select-String 'repoUrl=' | ForEach-Object { $_.ToString().Split('=')[1].Trim() }"`) do set REPO_URL=%%a
 
@@ -26,7 +26,7 @@ if "%ANVIL_VERSION%"=="latest" (
 )
 
 :: --- Define Cache Paths ---
-set "ANVIL_HOME=.anvil\wrapper\%ANVIL_VERSION%"
+set "ANVIL_HOME=%~dp0.anvil\wrapper\%ANVIL_VERSION%"
 set "ANVIL_BIN=%ANVIL_HOME%\bin\anvil.exe"
 set "TEMP_ZIP=%ANVIL_HOME%\anvil.zip"
 
@@ -54,10 +54,15 @@ del "%TEMP_ZIP%"
 
 if not exist "%ANVIL_BIN%" (
     echo [Error] %ANVIL_BIN% not found after installation.
+    dir "%ANVIL_HOME%" /s
     exit /b 1
 )
 
 :exec
 :: --- Execute ---
-echo [anvilw] executing anvil
+echo [anvilw] executing anvil: "%ANVIL_BIN%"
 "%ANVIL_BIN%" %*
+if %errorlevel% neq 0 (
+    echo [anvilw] anvil exited with code %errorlevel%
+    exit /b %errorlevel%
+)
