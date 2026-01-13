@@ -4,6 +4,7 @@
 #include <memory>
 #include <map>
 #include <iostream>
+#include <fmt/core.h>
 
 namespace anvil {
     class Command {
@@ -28,16 +29,16 @@ namespace anvil {
             if (it != commands.end()) {
                 return it->second->execute(args, exePath);
             }
-            std::cerr << "Unknown command: " << name << std::endl;
+            fmt::print(stderr, "Unknown command: {}\n", name);
             printHelp();
             return 1;
         }
 
         void printHelp() const {
-            std::cout << "Usage: anvil <command> [options]" << std::endl;
-            std::cout << "Available commands:" << std::endl;
+            fmt::print("Usage: anvil <command> [options]\n");
+            fmt::print("Available commands:\n");
             for (const auto &pair: commands) {
-                std::cout << "  " << pair.first << " - " << pair.second->getDescription() << std::endl;
+                fmt::print("  {} - {}\n", pair.first, pair.second->getDescription());
             }
         }
 
