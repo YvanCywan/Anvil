@@ -24,6 +24,25 @@ int main(int argc, char* argv[]) {
         fs::path srcPath = rootDir / src;
         if (!fs::exists(srcPath)) {
             std::cerr << "[Anvil Error] Source file not found: " << srcPath << std::endl;
+
+            fs::path parent = srcPath.parent_path();
+            if (fs::exists(parent)) {
+                std::cerr << "Contents of " << parent << ":" << std::endl;
+                for (const auto& entry : fs::directory_iterator(parent)) {
+                    std::cerr << "  - " << entry.path().filename() << std::endl;
+                }
+            } else {
+                std::cerr << "Parent directory " << parent << " does not exist." << std::endl;
+
+                // Check if src directory exists at all
+                fs::path srcDir = rootDir / "src";
+                if (fs::exists(srcDir)) {
+                     std::cerr << "Contents of " << srcDir << ":" << std::endl;
+                     for (const auto& entry : fs::directory_iterator(srcDir)) {
+                        std::cerr << "  - " << entry.path().filename() << std::endl;
+                     }
+                }
+            }
             missingSources = true;
         }
     }
