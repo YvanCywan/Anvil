@@ -73,7 +73,13 @@ namespace anvil {
             app.type = AppType::Executable;
             app.standard = CppStandard::CPP_20;
 
-            add_anvil_include(app);
+            // For executables, we default to src/main if it exists, to avoid exposing src/test
+            if (std::filesystem::exists("src/main")) {
+                app.add_include("src/main");
+            } else if (std::filesystem::exists("src")) {
+                // Fallback to src if src/main doesn't exist
+                app.add_include("src");
+            }
 
             if (std::filesystem::exists("src/main/main.cpp")) {
                 app.add_source("src/main/main.cpp");
