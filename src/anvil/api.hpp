@@ -42,14 +42,45 @@ namespace anvil {
         // Legacy support for older versions of Anvil that might expect this member
         CppApplication application;
 
+        void add_anvil_include(CppApplication& app) {
+            if (std::filesystem::exists("src/anvil/test.hpp")) {
+                // Self-hosting: use local src directory
+                app.add_include("src");
+            } else {
+                // Consumer project: find headers in .anvil/wrapper
+                std::string wrapperDir = ".anvil/wrapper";
+                bool found = false;
+                if (std::filesystem::exists(wrapperDir)) {
+                    for (const auto& entry : std::filesystem::directory_iterator(wrapperDir)) {
+                        if (entry.is_directory()) {
+                            std::string includePath = (entry.path() / "include").string();
+                            if (std::filesystem::exists(includePath + "/anvil/test.hpp")) {
+                                app.add_include(includePath);
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (!found) {
+                    // Fallback or warning? For now, just try adding src in case user has custom setup
+                    // But don't add it blindly if it doesn't exist?
+                    // The original code added "src" blindly.
+                    // Let's add "src" if it exists, otherwise we might fail.
+                    if (std::filesystem::exists("src")) {
+                        app.add_include("src");
+                    }
+                }
+            }
+        }
+
         void add_executable(const std::string& name, const std::function<void(CppApplication&)> &config) {
             CppApplication app;
             app.name = name;
             app.type = AppType::Executable;
             app.standard = CppStandard::CPP_20;
 
-            // Use absolute path for src to avoid ambiguity
-            app.add_include((std::filesystem::current_path() / "src").string());
+            add_anvil_include(app);
 
             if (std::filesystem::exists("src/main/main.cpp")) {
                 app.add_source("src/main/main.cpp");
@@ -62,6 +93,7 @@ namespace anvil {
             config(app);
             targets.push_back(app);
 
+            // Keep legacy member in sync for now if needed, though targets is preferred
             if (targets.size() == 1) {
                 application = app;
             }
@@ -73,8 +105,7 @@ namespace anvil {
             app.type = AppType::Test;
             app.standard = CppStandard::CPP_20;
 
-            // Use absolute path for src to avoid ambiguity
-            app.add_include((std::filesystem::current_path() / "src").string());
+            add_anvil_include(app);
 
             // Check for user-provided runner (must be non-empty)
             if (std::filesystem::exists("src/test/test_runner.cpp") && std::filesystem::file_size("src/test/test_runner.cpp") > 0) {
