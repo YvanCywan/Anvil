@@ -17,7 +17,6 @@ void configure(anvil::Project& project) {
 
     project.add_executable("anvil", [](anvil::CppApplication& app) {
         app.add_include("src");
-
     });
 
     project.add_test("anvil_tests", [](anvil::CppApplication& app) {
