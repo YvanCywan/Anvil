@@ -75,7 +75,15 @@ jobs:
         run: |
           mkdir staging
           mkdir staging/bin
+          mkdir staging/src
+          
+          # Copy the binary
           cp bin/${{ matrix.binary_name }} staging/bin/
+          
+          # Copy the source code required for bootstrapping
+          cp -r src/anvil staging/src/
+          cp -r src/main staging/src/
+
           cd staging
 
           # Zip it up based on the OS
