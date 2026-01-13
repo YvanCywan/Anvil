@@ -1,8 +1,12 @@
 #include "api.hpp"
 #include "ninja.hpp"
+#include "dependency_manager.hpp"
 #include <iostream>
+#include <filesystem>
 
 extern "C" void configure(anvil::Project& project);
+
+namespace fs = std::filesystem;
 
 int main(int argc, char* argv[]) {
     anvil::Project project;
@@ -11,11 +15,23 @@ int main(int argc, char* argv[]) {
 
     std::cout << "[Anvil] Graph Loaded: " << project.name << std::endl;
     
-    {
-        anvil::NinjaWriter writer("build.ninja");
-        writer.generate(project);
-    }
+    fs::path rootDir = fs::current_path();
+    anvil::DependencyManager deps(rootDir / ".anvil" / "tools");
 
-    std::cout << "[Anvil] Executing Ninja..." << std::endl;
-    return std::system("ninja");
+    try {
+        fs::path ninjaExe = deps.get_ninja();
+
+        {
+            anvil::NinjaWriter writer("build.ninja");
+            writer.generate(project);
+        }
+
+        std::cout << "[Anvil] Executing Ninja..." << std::endl;
+        std::string cmd = ninjaExe.string();
+        return std::system(cmd.c_str());
+
+    } catch (const std::exception& e) {
+        std::cerr << "[Anvil Error] " << e.what() << std::endl;
+        return 1;
+    }
 }
