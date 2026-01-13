@@ -59,4 +59,5 @@ if not exist "%ANVIL_BIN%" (
 
 :exec
 :: --- Execute ---
+echo [anvilw] executing anvil
 "%ANVIL_BIN%" %*
