@@ -15,8 +15,14 @@ namespace anvil {
         std::unique_ptr<Toolchain> toolchain;
 
     public:
-        ScriptCompiler(fs::path src, fs::path build)
-            : sourceDir(std::move(src)), buildDir(std::move(build)), toolchain(std::make_unique<ClangToolchain>()) {}
+        ScriptCompiler(fs::path src, fs::path build, std::unique_ptr<Toolchain> tc = nullptr)
+            : sourceDir(std::move(src)), buildDir(std::move(build)) {
+            if (tc) {
+                toolchain = std::move(tc);
+            } else {
+                toolchain = std::make_unique<ClangToolchain>();
+            }
+        }
 
         [[nodiscard]] fs::path compile(const fs::path& userScript) const {
             fs::create_directories(buildDir);
@@ -34,6 +40,8 @@ namespace anvil {
             };
 
             std::string cmd = toolchain->getCompileCommand(userScript, runnerExe, flags);
+
+            std::cout << "[Anvil] Compiling build script with: " << toolchain->getCompiler() << std::endl;
 
             if (!exec(cmd)) {
                 throw std::runtime_error("Failed to compile build script");

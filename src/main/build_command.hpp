@@ -31,7 +31,16 @@ namespace anvil {
             try {
                 std::cout << "[Anvil] Compiling Build Script..." << std::endl;
 
-                ScriptCompiler compiler(srcDir, rootDir / ".anvil");
+                // Check for compiler override via environment variable
+                std::unique_ptr<Toolchain> toolchain;
+                const char* env_compiler = std::getenv("ANVIL_SCRIPT_COMPILER");
+                if (env_compiler && std::string(env_compiler) == "gcc") {
+                     toolchain = std::make_unique<GCCToolchain>();
+                } else {
+                     toolchain = std::make_unique<ClangToolchain>();
+                }
+
+                ScriptCompiler compiler(srcDir, rootDir / ".anvil", std::move(toolchain));
                 fs::path runner = compiler.compile(userScript);
 
                 std::cout << "[Anvil] Loading..." << std::endl;

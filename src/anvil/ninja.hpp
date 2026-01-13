@@ -2,6 +2,7 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <iostream>
 #include "api.hpp"
 
 namespace anvil {
@@ -12,18 +13,26 @@ namespace anvil {
         explicit NinjaWriter(const std::string& path) : out(path) {
             out << "ninja_required_version = 1.3\n";
             out << "builddir = .anvil_build\n\n";
-            
-            out << "rule cxx\n";
-            out << "  command = clang++ $FLAGS $INCLUDES -c $in -o $out\n";
-            out << "  description = CXX $out\n\n";
-
-            out << "rule link\n";
-            out << "  command = clang++ $FLAGS $in -o $out\n";
-            out << "  description = LINK $out\n\n";
         }
 
         void generate(const Project& project) {
             const auto& app = project.application;
+
+            std::string compiler = "clang++";
+            if (app.compilerId == CompilerId::GCC) {
+                compiler = "g++";
+            }
+
+            std::cout << "[Anvil] Configured Toolchain: " << compiler << std::endl;
+
+            out << "rule cxx\n";
+            out << "  command = " << compiler << " $FLAGS $INCLUDES -c $in -o $out\n";
+            out << "  description = CXX $out\n\n";
+
+            out << "rule link\n";
+            out << "  command = " << compiler << " $FLAGS $in -o $out\n";
+            out << "  description = LINK $out\n\n";
+
             std::vector<std::string> object_files;
 
             std::string flags = "-MD -MF $out.d";

@@ -34,4 +34,25 @@ namespace anvil {
             return cmd;
         }
     };
+
+    class GCCToolchain : public Toolchain {
+    public:
+        std::string getCompiler() const override {
+            return "g++";
+        }
+
+        std::string getLinker() const override {
+            return "g++";
+        }
+
+        std::string getCompileCommand(const fs::path& source, const fs::path& output, const std::vector<std::string>& flags) const override {
+            std::string cmd = getCompiler();
+            for (const auto& flag : flags) {
+                cmd += " " + flag;
+            }
+            cmd += " " + source.string();
+            cmd += " -o " + output.string();
+            return cmd;
+        }
+    };
 }

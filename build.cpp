@@ -12,6 +12,7 @@ void configure(anvil::Project& project) {
         app.standard = anvil::CppStandard::CPP_20;
 
         app.add_source("src/main/main.cpp");
+        app.set_compiler(anvil::CompilerId::GCC);
 
         app.add_include("src");
     });
