@@ -5,6 +5,7 @@
 #include <map>
 #include <filesystem>
 #include <iostream>
+#include <fstream>
 
 namespace anvil {
 
@@ -72,10 +73,26 @@ namespace anvil {
             app.standard = CppStandard::CPP_20;
             app.add_include("src");
 
-            if (std::filesystem::exists("src/test/test_runner.cpp")) {
+            // Check for user-provided runner (must be non-empty)
+            if (std::filesystem::exists("src/test/test_runner.cpp") && std::filesystem::file_size("src/test/test_runner.cpp") > 0) {
                 app.add_source("src/test/test_runner.cpp");
             } else {
-                std::cerr << "Warning: src/test/test_runner.cpp not found!" << std::endl;
+                // Generate default runner
+                std::string generatedDir = ".anvil/generated";
+                if (!std::filesystem::exists(generatedDir)) {
+                    std::filesystem::create_directories(generatedDir);
+                }
+
+                std::string generatedRunner = generatedDir + "/" + name + "_runner.cpp";
+                std::ofstream runnerFile(generatedRunner);
+                if (runnerFile.is_open()) {
+                    runnerFile << "#define ANVIL_TEST_MAIN\n";
+                    runnerFile << "#include \"anvil/test.hpp\"\n";
+                    runnerFile.close();
+                    app.add_source(generatedRunner);
+                } else {
+                    std::cerr << "Error: Could not create generated test runner at " << generatedRunner << std::endl;
+                }
             }
 
             if (std::filesystem::exists("src/test")) {
