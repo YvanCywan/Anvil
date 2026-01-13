@@ -89,6 +89,12 @@ namespace anvil {
         }
 
         void ensure_conan_installed() {
+            // First check if conan is already in the path
+            if (std::system("conan --version > /dev/null 2>&1") == 0) {
+                conanCmd = "conan";
+                return;
+            }
+
             pythonCmd = get_python_command();
             if (pythonCmd.empty()) {
                 std::cerr << "[Anvil Error] Python not found." << std::endl;
@@ -145,12 +151,20 @@ namespace anvil {
         }
 
         void install_dependency(const std::string& dep) {
-            std::string cmd = make_env_command(
-                conanCmd + " install --requires=" + dep +
+            std::string cmd;
+            if (conanCmd == "conan") {
+                cmd = conanCmd + " install --requires=" + dep +
                 " --deployer=full_deploy" +
                 " --output-folder=\"" + libDir.string() + "\"" +
-                " --build=missing -v quiet"
-            );
+                " --build=missing -v quiet";
+            } else {
+                cmd = make_env_command(
+                    conanCmd + " install --requires=" + dep +
+                    " --deployer=full_deploy" +
+                    " --output-folder=\"" + libDir.string() + "\"" +
+                    " --build=missing -v quiet"
+                );
+            }
 
             std::cout << "  >> Installing " << dep << "..." << std::endl;
             int result = std::system(cmd.c_str());
