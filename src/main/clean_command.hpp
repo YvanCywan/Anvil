@@ -1,27 +1,24 @@
 #pragma once
 #include "cli.hpp"
 #include "anvil/script_compiler.hpp"
-#include "process.hpp"
 #include <filesystem>
-#include <iostream>
 
 namespace fs = std::filesystem;
 
 namespace anvil {
-    class BuildCommand : public Command {
+    class CleanCommand : public Command {
     public:
         std::string getName() const override {
-            return "build";
+            return "clean";
         }
 
         std::string getDescription() const override {
-            return "Compiles and runs the build script";
+            return "Cleans the build artefacts of the project";
         }
 
         int execute(const std::vector<std::string> &args) override {
             fs::path rootDir = fs::current_path();
             fs::path userScript = rootDir / "build.cpp";
-            fs::path srcDir = rootDir / "src";
 
             if (!fs::exists(userScript)) {
                 std::cerr << "Error: build.cpp not found." << std::endl;
@@ -29,13 +26,12 @@ namespace anvil {
             }
 
             try {
-                std::cout << "[Anvil] Compiling Build Script..." << std::endl;
+                std::cout << "[Anvil] Cleaning Build Artefacts..." << std::endl;
+                fs::remove_all(rootDir / ".anvil_build");
+                fs::remove_all(rootDir / "bin");
+                fs::remove(rootDir / ".d");
+                fs::remove(rootDir / "build.ninja");
 
-                ScriptCompiler compiler(srcDir, rootDir / ".anvil");
-                fs::path runner = compiler.compile(userScript);
-
-                std::cout << "[Anvil] Loading..." << std::endl;
-                exec(runner.string());
             } catch (const std::exception &e) {
                 std::cerr << "[Anvil Error] " << e.what() << std::endl;
                 return 1;

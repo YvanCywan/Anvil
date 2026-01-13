@@ -16,4 +16,5 @@ add_executable(Anvil_Dummy ${SRC_FILES}
         src/anvil/ninja.hpp
         src/anvil/driver.cpp
         src/anvil/script_compiler.hpp
+        src/main/clean_command.hpp
 )
