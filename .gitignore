@@ -6,3 +6,6 @@ build.ninja
 # .gitignore
 !anvilw
 !anvilw.bat
+/.d
+/.anvil_build/.ninja_log
+/.anvil_build/src/main/main.cpp.o
