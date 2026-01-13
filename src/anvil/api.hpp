@@ -47,7 +47,9 @@ namespace anvil {
             app.name = name;
             app.type = AppType::Executable;
             app.standard = CppStandard::CPP_20;
-            app.add_include("src");
+
+            // Use absolute path for src to avoid ambiguity
+            app.add_include((std::filesystem::current_path() / "src").string());
 
             if (std::filesystem::exists("src/main/main.cpp")) {
                 app.add_source("src/main/main.cpp");
@@ -60,7 +62,6 @@ namespace anvil {
             config(app);
             targets.push_back(app);
 
-            // Keep legacy member in sync for now if needed, though targets is preferred
             if (targets.size() == 1) {
                 application = app;
             }
@@ -71,7 +72,9 @@ namespace anvil {
             app.name = name;
             app.type = AppType::Test;
             app.standard = CppStandard::CPP_20;
-            app.add_include("src");
+
+            // Use absolute path for src to avoid ambiguity
+            app.add_include((std::filesystem::current_path() / "src").string());
 
             // Check for user-provided runner (must be non-empty)
             if (std::filesystem::exists("src/test/test_runner.cpp") && std::filesystem::file_size("src/test/test_runner.cpp") > 0) {
