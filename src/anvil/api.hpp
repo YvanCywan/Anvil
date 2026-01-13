@@ -107,8 +107,16 @@ namespace anvil {
             add_anvil_include(app);
 
             // Check for user-provided runner (must be non-empty)
-            if (std::filesystem::exists("src/test/test_runner.cpp") && std::filesystem::file_size("src/test/test_runner.cpp") > 0) {
-                app.add_source("src/test/test_runner.cpp");
+            // Support both "test/test_runner.cpp" (preferred) and "src/test/test_runner.cpp" (legacy)
+            std::string runnerPath;
+            if (std::filesystem::exists("test/test_runner.cpp") && std::filesystem::file_size("test/test_runner.cpp") > 0) {
+                runnerPath = "test/test_runner.cpp";
+            } else if (std::filesystem::exists("src/test/test_runner.cpp") && std::filesystem::file_size("src/test/test_runner.cpp") > 0) {
+                runnerPath = "src/test/test_runner.cpp";
+            }
+
+            if (!runnerPath.empty()) {
+                app.add_source(runnerPath);
             } else {
                 // Generate default runner
                 std::string generatedDir = ".anvil/generated";
@@ -128,6 +136,19 @@ namespace anvil {
                 }
             }
 
+            // Add sources from "test" directory (preferred)
+            if (std::filesystem::exists("test")) {
+                for (const auto& entry : std::filesystem::recursive_directory_iterator("test")) {
+                    if (entry.path().extension() == ".cpp") {
+                        std::string path = entry.path().string();
+                        if (path.find("test_runner.cpp") == std::string::npos) {
+                             app.add_source(path);
+                        }
+                    }
+                }
+            }
+
+            // Add sources from "src/test" directory (legacy)
             if (std::filesystem::exists("src/test")) {
                 for (const auto& entry : std::filesystem::recursive_directory_iterator("src/test")) {
                     if (entry.path().extension() == ".cpp") {
