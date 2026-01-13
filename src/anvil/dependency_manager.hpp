@@ -26,18 +26,18 @@ namespace anvil {
             }
 
             std::cout << "[Anvil] Downloading Ninja..." << std::endl;
-            // Simplified download logic - in a real scenario, this would detect OS/Arch
-            // For now, assuming macOS/Linux and using a direct URL or a package manager wrapper
-            // This is a placeholder for the actual download logic
 
-            // Example: Download a static ninja binary
-            // In a real implementation, we would use curl/wget to download from github releases
+            std::string url;
+#if defined(_WIN32)
+            url = "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-win.zip";
+#elif defined(__APPLE__)
+            url = "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-mac.zip";
+#elif defined(__linux__)
+            url = "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip";
+#else
+            throw std::runtime_error("Unsupported OS for automatic Ninja download");
+#endif
 
-            // For this prototype, we will assume the user has it or we fail.
-            // But the request is to download it.
-
-            // Let's try to download a known version for macOS (since the user is on macOS)
-            std::string url = "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-mac.zip";
             fs::path zipPath = toolsDir / "ninja.zip";
 
             std::string cmd = "curl -L -o " + zipPath.string() + " " + url;
@@ -51,7 +51,10 @@ namespace anvil {
             }
 
             fs::remove(zipPath);
+
+#ifndef _WIN32
             fs::permissions(ninjaPath, fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec, fs::perm_options::add);
+#endif
 
             return ninjaPath;
         }
