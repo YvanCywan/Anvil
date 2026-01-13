@@ -33,7 +33,7 @@ namespace anvil {
             return 1;
         }
 
-        void printHelp() {
+        void printHelp() const {
             std::cout << "Usage: anvil <command> [options]" << std::endl;
             std::cout << "Available commands:" << std::endl;
             for (const auto &pair: commands) {

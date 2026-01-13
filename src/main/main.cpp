@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
     const std::string commandName = argv[1];
     std::vector<std::string> args;
     for (int i = 2; i < argc; ++i) {
-        args.push_back(argv[i]);
+        args.emplace_back(argv[i]);
     }
 
     return registry.execute(commandName, args);

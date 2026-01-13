@@ -9,7 +9,7 @@ namespace anvil {
     class NinjaWriter {
         std::ofstream out;
     public:
-        NinjaWriter(const std::string& path) : out(path) {
+        explicit NinjaWriter(const std::string& path) : out(path) {
             out << "ninja_required_version = 1.3\n";
             out << "builddir = .anvil_build\n\n";
             

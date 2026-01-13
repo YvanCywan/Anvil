@@ -29,22 +29,53 @@ case "$OS" in
     *) echo "Unsupported OS: $OS"; exit 1 ;;
 esac
 
-# Handle 'latest' vs specific version
+# --- Resolve 'latest' Version ---
 if [ "$ANVIL_VERSION" = "latest" ]; then
-    DOWNLOAD_URL="$REPO_URL/releases/latest/download/$ARTIFACT_NAME"
-else
-    DOWNLOAD_URL="$REPO_URL/releases/download/v$ANVIL_VERSION/$ARTIFACT_NAME"
+    echo "[anvilw] Checking for latest version..."
+    LATEST_URL="$REPO_URL/releases/latest"
+
+    if command -v curl >/dev/null 2>&1; then
+        # curl -w %{url_effective} prints the final URL after redirects
+        RESOLVED_URL=$(curl -Ls -o /dev/null -w %{url_effective} "$LATEST_URL")
+    elif command -v wget >/dev/null 2>&1; then
+        # wget: parse Location header from server response
+        RESOLVED_URL=$(wget --server-response --spider "$LATEST_URL" 2>&1 | grep -i "Location:" | head -n 1 | awk '{print $2}')
+    else
+        echo "Error: Neither curl nor wget found."
+        exit 1
+    fi
+
+    if [ -z "$RESOLVED_URL" ]; then
+        echo "[Error] Failed to resolve latest version from GitHub."
+        exit 1
+    fi
+
+    # Extract tag from URL (e.g., .../releases/tag/v1.2.3 -> v1.2.3)
+    LATEST_TAG=$(basename "$RESOLVED_URL")
+
+    # Strip 'v' prefix if present to normalize version number
+    if [[ "$LATEST_TAG" == v* ]]; then
+        ANVIL_VERSION="${LATEST_TAG:1}"
+    else
+        ANVIL_VERSION="$LATEST_TAG"
+    fi
+
+    echo "[anvilw] Resolved latest to v$ANVIL_VERSION"
 fi
 
+# --- Construct Download URL ---
+# Now ANVIL_VERSION is always a specific version number
+DOWNLOAD_URL="$REPO_URL/releases/download/v$ANVIL_VERSION/$ARTIFACT_NAME"
+
 # --- Define Cache Paths ---
-# Stores binaries in ~/.anvil/wrapper/<version>/
+# Stores binaries in .anvil/wrapper/<version>/
 ANVIL_HOME=".anvil/wrapper/$ANVIL_VERSION"
 ANVIL_BIN="$ANVIL_HOME/bin/anvil"
 TEMP_ZIP="$ANVIL_HOME/anvil.zip"
 
 # --- Download & Install ---
 if [ ! -f "$ANVIL_BIN" ]; then
-    echo "[anvilw] Downloading Anvil ($ANVIL_VERSION)..."
+    echo "[anvilw] Downloading Anvil v$ANVIL_VERSION..."
     mkdir -p "$ANVIL_HOME"
 
     # Download using curl or wget
@@ -52,9 +83,6 @@ if [ ! -f "$ANVIL_BIN" ]; then
         curl -L -o "$TEMP_ZIP" "$DOWNLOAD_URL"
     elif command -v wget >/dev/null 2>&1; then
         wget -O "$TEMP_ZIP" "$DOWNLOAD_URL"
-    else
-        echo "Error: Neither curl nor wget found."
-        exit 1
     fi
 
     # Verify download wasn't empty
@@ -71,5 +99,4 @@ if [ ! -f "$ANVIL_BIN" ]; then
 fi
 
 # --- Execute ---
-# Pass all arguments ($@) to the actual binary
 exec "$ANVIL_BIN" "$@"

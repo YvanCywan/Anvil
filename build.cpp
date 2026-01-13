@@ -1,5 +1,10 @@
 #include "anvil/api.hpp"
 
+void anvil::Project::add_executable(const std::string &name, std::function<void(CppApplication &)> config) {
+    application.name = name;
+    config(application);
+}
+
 void configure(anvil::Project& project) {
     project.name = "Anvil";
 

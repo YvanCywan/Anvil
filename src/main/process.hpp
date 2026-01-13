@@ -6,7 +6,7 @@
 namespace anvil {
     inline bool exec(const std::string& cmd) {
         std::cout << "  >> " << cmd << std::endl;
-        int result = std::system(cmd.c_str());
+        const int result = std::system(cmd.c_str());
         return result == 0;
     }
 }

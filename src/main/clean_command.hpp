@@ -8,19 +8,18 @@ namespace fs = std::filesystem;
 namespace anvil {
     class CleanCommand : public Command {
     public:
-        std::string getName() const override {
+        [[nodiscard]] std::string getName() const override {
             return "clean";
         }
 
-        std::string getDescription() const override {
+        [[nodiscard]] std::string getDescription() const override {
             return "Cleans the build artefacts of the project";
         }
 
         int execute(const std::vector<std::string> &args) override {
-            fs::path rootDir = fs::current_path();
-            fs::path userScript = rootDir / "build.cpp";
+            const fs::path rootDir = fs::current_path();
 
-            if (!fs::exists(userScript)) {
+            if (fs::path userScript = rootDir / "build.cpp"; !fs::exists(userScript)) {
                 std::cerr << "Error: build.cpp not found." << std::endl;
                 return 1;
             }

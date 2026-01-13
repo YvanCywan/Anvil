@@ -29,10 +29,7 @@ namespace anvil {
         std::string version;
         CppApplication application;
 
-        void add_executable(const std::string& name, std::function<void(CppApplication&)> config) {
-            application.name = name;
-            config(application);
-        }
+        void add_executable(const std::string& name, std::function<void(CppApplication&)> config);
     };
 
     class BuildScript {

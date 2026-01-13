@@ -10,11 +10,11 @@ namespace fs = std::filesystem;
 namespace anvil {
     class BuildCommand : public Command {
     public:
-        std::string getName() const override {
+        [[nodiscard]] std::string getName() const override {
             return "build";
         }
 
-        std::string getDescription() const override {
+        [[nodiscard]] std::string getDescription() const override {
             return "Compiles and runs the build script";
         }
 
