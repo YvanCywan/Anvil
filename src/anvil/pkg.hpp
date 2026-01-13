@@ -7,7 +7,6 @@
 #include <cstdlib>
 #include <set>
 #include <algorithm>
-#include <fmt/core.h>
 
 namespace anvil {
     namespace fs = std::filesystem;
@@ -25,7 +24,6 @@ namespace anvil {
         }
 
         void resolve(Project& project) {
-            // 1. Collect all unique dependencies from all targets
             std::set<std::string> all_deps_set;
             for (const auto& target : project.targets) {
                 for (const auto& dep : target.dependencies) {
@@ -37,14 +35,12 @@ namespace anvil {
                 return;
             }
 
-            fmt::print("[Anvil] Resolving project dependencies...\n");
+            std::cout << "[Anvil] Resolving project dependencies..." << std::endl;
 
-            // 2. Install all unique dependencies
             for (const auto& dep : all_deps_set) {
                 install_dependency(dep);
             }
 
-            // 3. Find all include/lib paths from all installed dependencies
             std::vector<std::string> include_paths;
             std::vector<std::string> link_flags;
             if (fs::exists(libDir / "full_deploy")) {
@@ -64,9 +60,8 @@ namespace anvil {
                 }
             }
 
-            // 4. Apply all found paths to ALL targets in the project
             if (!include_paths.empty() || !link_flags.empty()) {
-                fmt::print("[Anvil] Linking dependencies to all targets.\n");
+                std::cout << "[Anvil] Linking dependencies to all targets." << std::endl;
                 for (auto& target : project.targets) {
                     for(const auto& p : include_paths) {
                         target.add_include(p);
@@ -96,48 +91,45 @@ namespace anvil {
         void ensure_conan_installed() {
             pythonCmd = get_python_command();
             if (pythonCmd.empty()) {
-                fmt::print(stderr, "[Anvil Error] Python not found.\n");
+                std::cerr << "[Anvil Error] Python not found." << std::endl;
                 throw std::runtime_error("Python not found");
             }
 
-#ifdef _WIN32
-            fs::path conanExePath = conanEnvDir / "Scripts" / "conan.exe";
-#else
-            fs::path conanExePath = conanEnvDir / "bin" / "conan";
-#endif
+            conanCmd = pythonCmd + " -m conans.conan";
+            std::string checkCmd = make_env_command(conanCmd + " --version > /dev/null 2>&1");
 
-            if (fs::exists(conanExePath)) {
-                conanCmd = "\"" + conanExePath.string() + "\"";
+            if (std::system(checkCmd.c_str()) == 0) {
                 return;
             }
 
-            fmt::print("[Anvil] Installing Conan locally to {}...\n", conanEnvDir.string());
+            std::cout << "[Anvil] Installing Conan locally to " << conanEnvDir.string() << "..." << std::endl;
+
+            if (!fs::exists(conanEnvDir)) {
+                fs::create_directories(conanEnvDir);
+            }
 
             std::string installCmd = pythonCmd + " -m pip install conan --target \"" + conanEnvDir.string() + "\"";
 
             int result = std::system(installCmd.c_str());
             if (result != 0) {
-                fmt::print(stderr, "[Anvil Error] Failed to install Conan locally.\n");
+                std::cerr << "[Anvil Error] Failed to install Conan locally." << std::endl;
                 throw std::runtime_error("Conan installation failed");
             }
 
-            if (!fs::exists(conanExePath)) {
-                fmt::print(stderr, "[Anvil Error] Conan installed but executable not found at {}\n", conanExePath.string());
-                throw std::runtime_error("Conan executable not found after installation");
+            if (std::system(checkCmd.c_str()) != 0) {
+                std::cerr << "[Anvil Error] Conan installed but failed to run from local environment." << std::endl;
+                std::string debugCmd = make_env_command(conanCmd + " --version");
+                std::system(debugCmd.c_str());
+                throw std::runtime_error("Conan not working after local installation");
             }
 
-            conanCmd = "\"" + conanExePath.string() + "\"";
-
-            // Ensure profile exists (required for Conan 2.0)
-            // MUST use make_env_command so it finds 'conans' module
             std::string profileCmd = make_env_command(conanCmd + " profile detect --force > /dev/null 2>&1");
             std::system(profileCmd.c_str());
 
-            fmt::print("[Anvil] Conan installed successfully.\n");
+            std::cout << "[Anvil] Conan installed successfully." << std::endl;
         }
 
         void install_dependency(const std::string& dep) {
-            // MUST use make_env_command so it finds 'conans' module
             std::string cmd = make_env_command(
                 conanCmd + " install --requires=" + dep +
                 " --deployer=full_deploy" +
@@ -145,10 +137,10 @@ namespace anvil {
                 " --build=missing -v quiet"
             );
 
-            fmt::print("  >> Installing {}...\n", dep);
+            std::cout << "  >> Installing " << dep << "..." << std::endl;
             int result = std::system(cmd.c_str());
             if (result != 0) {
-                fmt::print(stderr, "[Anvil Error] Failed to install dependency: {}\n", dep);
+                std::cerr << "[Anvil Error] Failed to install dependency: " << dep << std::endl;
                 throw std::runtime_error("Dependency resolution failed");
             }
         }

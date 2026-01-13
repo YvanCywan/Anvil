@@ -6,7 +6,6 @@
 #include <filesystem>
 #include <vector>
 #include <string>
-#include <fmt/core.h>
 
 extern "C" void configure(anvil::Project& project);
 
@@ -17,7 +16,6 @@ int main(int argc, char* argv[]) {
     bool runTests = false;
     std::vector<std::string> runArgs;
 
-    // Simple argument parsing
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "--run") {
@@ -25,7 +23,6 @@ int main(int argc, char* argv[]) {
         } else if (arg == "--test") {
             runTests = true;
         } else if (runAfterBuild) {
-            // Collect arguments for the target application
             runArgs.push_back(arg);
         }
     }
@@ -34,39 +31,36 @@ int main(int argc, char* argv[]) {
     
     configure(project);
 
-    fmt::print("[Anvil] Graph Loaded: {}\n", project.name);
+    std::cout << "[Anvil] Graph Loaded: " << project.name << std::endl;
     
     fs::path rootDir = fs::current_path();
-    fmt::print("[Anvil] Working Directory: {}\n", rootDir.string());
+    std::cout << "[Anvil] Working Directory: " << rootDir << std::endl;
 
-    // Handle legacy mode where targets might be empty but application is set
     if (project.targets.empty() && !project.application.name.empty()) {
         project.targets.push_back(project.application);
     }
 
-    // Verify sources exist for all targets
     bool missingSources = false;
     for (const auto& target : project.targets) {
         for (const auto& src : target.sources) {
             fs::path srcPath = rootDir / src;
             if (!fs::exists(srcPath)) {
-                fmt::print(stderr, "[Anvil Error] Source file not found: {}\n", srcPath.string());
+                std::cerr << "[Anvil Error] Source file not found: " << srcPath << std::endl;
 
                 fs::path parent = srcPath.parent_path();
                 if (fs::exists(parent)) {
-                    fmt::print(stderr, "Contents of {}:\n", parent.string());
+                    std::cerr << "Contents of " << parent << ":" << std::endl;
                     for (const auto& entry : fs::directory_iterator(parent)) {
-                        fmt::print(stderr, "  - {}\n", entry.path().filename().string());
+                        std::cerr << "  - " << entry.path().filename() << std::endl;
                     }
                 } else {
-                    fmt::print(stderr, "Parent directory {} does not exist.\n", parent.string());
+                    std::cerr << "Parent directory " << parent << " does not exist." << std::endl;
 
-                    // Check if src directory exists at all
                     fs::path srcDir = rootDir / "src";
                     if (fs::exists(srcDir)) {
-                         fmt::print(stderr, "Contents of {}:\n", srcDir.string());
+                         std::cerr << "Contents of " << srcDir << ":" << std::endl;
                          for (const auto& entry : fs::directory_iterator(srcDir)) {
-                            fmt::print(stderr, "  - {}\n", entry.path().filename().string());
+                            std::cerr << "  - " << entry.path().filename() << std::endl;
                          }
                     }
                 }
@@ -79,14 +73,12 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // --- NEW: Resolve Dependencies ---
     try {
         anvil::PackageManager pkgMgr(rootDir / ".anvil" / "libraries");
         pkgMgr.resolve(project);
     } catch (const std::exception& e) {
         return 1;
     }
-    // ---------------------------------
 
     anvil::DependencyManager deps(rootDir / ".anvil" / "tools");
 
@@ -98,7 +90,7 @@ int main(int argc, char* argv[]) {
             writer.generate(project);
         }
 
-        fmt::print("[Anvil] Executing Ninja...\n");
+        std::cout << "[Anvil] Executing Ninja..." << std::endl;
         std::string cmd = ninjaExe.string();
         int buildResult = std::system(cmd.c_str());
 
@@ -117,30 +109,29 @@ int main(int argc, char* argv[]) {
                     binPath += ".exe";
 #endif
                     if (fs::exists(binPath)) {
-                        fmt::print("[Anvil] Running Test: {}...\n", target.name);
+                        std::cout << "[Anvil] Running Test: " << target.name << "..." << std::endl;
                         int result = std::system(binPath.string().c_str());
                         if (result != 0) {
-                            fmt::print(stderr, "[Anvil] Test {} failed.\n", target.name);
+                            std::cerr << "[Anvil] Test " << target.name << " failed." << std::endl;
                             allTestsPassed = false;
                         } else {
-                            fmt::print("[Anvil] Test {} passed.\n", target.name);
+                            std::cout << "[Anvil] Test " << target.name << " passed." << std::endl;
                         }
                     } else {
-                        fmt::print(stderr, "[Anvil Error] Test executable not found: {}\n", binPath.string());
+                        std::cerr << "[Anvil Error] Test executable not found: " << binPath << std::endl;
                         allTestsPassed = false;
                     }
                 }
              }
 
              if (!testsFound) {
-                 fmt::print("[Anvil] No tests found.\n");
+                 std::cout << "[Anvil] No tests found." << std::endl;
              }
 
              if (!allTestsPassed) return 1;
         }
 
         if (runAfterBuild) {
-            // Find the first executable target to run
             const anvil::CppApplication* targetToRun = nullptr;
             for (const auto& target : project.targets) {
                 if (target.type == anvil::AppType::Executable) {
@@ -155,25 +146,25 @@ int main(int argc, char* argv[]) {
                 binPath += ".exe";
 #endif
                 if (fs::exists(binPath)) {
-                    fmt::print("[Anvil] Running {}...\n", targetToRun->name);
+                    std::cout << "[Anvil] Running " << targetToRun->name << "..." << std::endl;
                     std::string runCmd = binPath.string();
                     for (const auto& arg : runArgs) {
                         runCmd += " " + arg;
                     }
                     return std::system(runCmd.c_str());
                 } else {
-                    fmt::print(stderr, "[Anvil Error] Executable not found: {}\n", binPath.string());
+                    std::cerr << "[Anvil Error] Executable not found: " << binPath << std::endl;
                     return 1;
                 }
             } else {
-                fmt::print("[Anvil] No executable target found to run.\n");
+                std::cout << "[Anvil] No executable target found to run." << std::endl;
             }
         }
 
         return 0;
 
     } catch (const std::exception& e) {
-        fmt::print(stderr, "[Anvil Error] {}\n", e.what());
+        std::cerr << "[Anvil Error] " << e.what() << std::endl;
         return 1;
     }
 }
