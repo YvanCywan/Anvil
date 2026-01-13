@@ -78,7 +78,17 @@ Now, you can build your project by running the wrapper:
 
 The final executable will be placed in the `bin/` directory.
 
-### 4. Clean the Build
+### 4. Run the Project
+
+To build and immediately run your application:
+
+```bash
+./anvilw run [args...]
+```
+
+Any arguments passed after `run` will be forwarded to your application.
+
+### 5. Clean the Build
 
 To remove build artifacts and temporary files:
 

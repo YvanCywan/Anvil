@@ -39,6 +39,10 @@ namespace anvil {
                 driverSrc.string()
             };
 
+#ifdef _WIN32
+            flags.push_back("-static");
+#endif
+
             std::string cmd = toolchain->getCompileCommand(userScript, runnerExe, flags);
 
             std::cout << "[Anvil] Compiling build script with: " << toolchain->getCompiler() << std::endl;

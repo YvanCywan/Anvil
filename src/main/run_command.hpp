@@ -17,28 +17,12 @@ namespace anvil {
         }
 
         int execute(const std::vector<std::string> &args, const std::string &exePath) override {
-            // Reuse the build command logic but pass a flag to the driver
-            // Since we can't easily modify the BuildCommand to accept flags without changing its signature,
-            // we will need to modify how arguments are passed to the script compiler or driver.
-
-            // However, the driver is what executes ninja and then could execute the binary.
-            // The driver is compiled from src/anvil/driver.cpp.
-            // We need to pass a flag to the driver to tell it to run the output.
-
-            // Let's instantiate a BuildCommand and run it, but we need to signal it to run.
-            // The current BuildCommand implementation doesn't support passing args to the driver easily.
-            // We should probably refactor BuildCommand or subclass it.
-
-            // For now, let's copy the logic from BuildCommand but add the --run flag to the execution of the runner.
-
             fs::path rootDir = fs::current_path();
             fs::path userScript = rootDir / "build.cpp";
 
-            // Derive include path from executable location
             fs::path exeDir = fs::absolute(exePath).parent_path();
             fs::path includeDir = exeDir.parent_path() / "include";
 
-            // Fallback for development environment
             if (!fs::exists(includeDir / "anvil" / "driver.cpp")) {
                 includeDir = rootDir / "src";
             }
