@@ -93,42 +93,42 @@ jobs:
           name: ${{ matrix.artifact_name }}
           path: ${{ matrix.artifact_name }}
 
-    publish-release:
-      needs: [ calculate-version, build-and-release ]
-      runs-on: ubuntu-latest
-      steps:
-        - name: Checkout Code
-          uses: actions/checkout@v4
+  publish:
+    needs: [ calculate-version, build-and-release ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-        - name: Download All Artifacts
-          uses: actions/download-artifact@v4
-          with:
-            path: artifacts
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
 
-        # download-artifact v4 places files in subdirectories (e.g., artifacts/anvil-linux-x64.zip/anvil-linux-x64.zip)
-        # We move them to a single flat directory for the release
-        - name: Stage Artifacts
-          run: |
-            mkdir release_assets
-            find artifacts -name "*.zip" -exec mv {} release_assets/ \;
-            ls -R release_assets
+      # download-artifact v4 places files in subdirectories (e.g., artifacts/anvil-linux-x64.zip/anvil-linux-x64.zip)
+      # We move them to a single flat directory for the release
+      - name: Stage Artifacts
+        run: |
+          mkdir release_assets
+          find artifacts -name "*.zip" -exec mv {} release_assets/ \;
+          ls -R release_assets
 
-        - name: Create Git Tag
-          run: |
-            git config user.name "GitHub Actions"
-            git config user.email "actions@github.com"
-            
-            TAG_NAME="v${{ needs.calculate-version.outputs.version }}"
-            echo "Tagging commit as $TAG_NAME"
-            
-            git tag $TAG_NAME
-            git push origin $TAG_NAME
+      - name: Create Git Tag
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          
+          TAG_NAME="v${{ needs.calculate-version.outputs.version }}"
+          echo "Tagging commit as $TAG_NAME"
+          
+          git tag $TAG_NAME
+          git push origin $TAG_NAME
 
-        - name: Create GitHub Release
-          uses: softprops/action-gh-release@v1
-          with:
-            tag_name: v${{ needs.calculate-version.outputs.version }}
-            name: Release v${{ needs.calculate-version.outputs.version }}
-            files: release_assets/*
-            make_latest: true
-            generate_release_notes: true
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.calculate-version.outputs.version }}
+          name: Release v${{ needs.calculate-version.outputs.version }}
+          files: release_assets/*
+          make_latest: true
+          generate_release_notes: true
