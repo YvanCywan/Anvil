@@ -6,99 +6,16 @@
 #include <filesystem>
 #include <vector>
 #include <string>
-#include <nlohmann/json.hpp>
 
 extern "C" void configure(anvil::Project& project);
 
 namespace fs = std::filesystem;
-using json = nlohmann::json;
 
 // BSP Loop
 int run_bsp_loop(const anvil::Project& project) {
-    while (true) {
-        std::string line;
-        std::getline(std::cin, line);
-        if (line.empty()) continue;
-
-        if (line.starts_with("Content-Length: ")) {
-            int length = std::stoi(line.substr(16));
-            std::getline(std::cin, line); // Skip empty line
-
-            std::vector<char> buffer(length);
-            std::cin.read(buffer.data(), length);
-            std::string content(buffer.begin(), buffer.end());
-
-            try {
-                json request = json::parse(content);
-                std::string method = request["method"];
-                json response;
-                response["jsonrpc"] = "2.0";
-                response["id"] = request["id"];
-
-                if (method == "build/initialize") {
-                    response["result"] = {
-                        {"displayName", "Anvil"},
-                        {"version", "0.1.0"},
-                        {"bspVersion", "2.0.0"},
-                        {"capabilities", {
-                            {"compileProvider", {
-                                {"languageIds", {"cpp"}}
-                            }}
-                        }}
-                    };
-                } else if (method == "workspace/buildTargets") {
-                    json targets = json::array();
-                    for (const auto& target : project.targets) {
-                        targets.push_back({
-                            {"id", {{"uri", "target:" + target.name}}},
-                            {"displayName", target.name},
-                            {"baseDirectory", fs::current_path().string()},
-                            {"tags", {}},
-                            {"languageIds", {"cpp"}},
-                            {"dependencies", {}},
-                            {"capabilities", {
-                                {"canCompile", true},
-                                {"canTest", target.type == anvil::AppType::Test},
-                                {"canRun", target.type == anvil::AppType::Executable}
-                            }}
-                        });
-                    }
-                    response["result"] = {{"targets", targets}};
-                } else if (method == "buildTarget/sources") {
-                    json items = json::array();
-                    for (const auto& target : project.targets) {
-                        json sources = json::array();
-                        for (const auto& src : target.sources) {
-                            sources.push_back({
-                                {"uri", "file://" + (fs::current_path() / src).string()},
-                                {"kind", 1},
-                                {"generated", false}
-                            });
-                        }
-                        items.push_back({
-                            {"target", {{"uri", "target:" + target.name}}},
-                            {"sources", sources}
-                        });
-                    }
-                    response["result"] = {{"items", items}};
-                } else if (method == "build/shutdown") {
-                    response["result"] = nullptr;
-                } else if (method == "build/exit") {
-                    return 0;
-                } else {
-                    // Ignore unknown methods for now
-                    continue;
-                }
-
-                std::string responseStr = response.dump();
-                std::cout << "Content-Length: " << responseStr.length() << "\r\n\r\n" << responseStr << std::flush;
-
-            } catch (const std::exception& e) {
-                std::cerr << "[BSP Error] " << e.what() << std::endl;
-            }
-        }
-    }
-    return 0;
+    // Logic removed to eliminate dependency on nlohmann::json
+    std::cerr << "[Anvil Error] BSP mode is currently disabled due to removal of JSON dependency." << std::endl;
+    return 1;
 }
 
 int main(int argc, char* argv[]) {
