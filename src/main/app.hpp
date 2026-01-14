@@ -13,7 +13,7 @@ namespace anvil {
     class App {
     public:
         static int run(int argc, char *argv[]) {
-            std::cout << "[Anvil] Starting..." << std::endl;
+            std::cerr << "[Anvil] Starting..." << std::endl;
             CommandRegistry registry;
             registry.registerCommand(std::make_unique<BuildCommand>());
             registry.registerCommand(std::make_unique<CleanCommand>());

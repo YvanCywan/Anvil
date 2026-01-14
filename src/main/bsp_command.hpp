@@ -64,7 +64,7 @@ namespace anvil {
 
             // 3. Implement Auto-Repair
             if (!fs::exists(userScript)) {
-                std::cout << "[Anvil] Repairing: 'build.cpp' not found..." << std::endl;
+                std::cerr << "[Anvil] Repairing: 'build.cpp' not found..." << std::endl;
                 std::ofstream ofs(userScript);
                 if (ofs) {
                     ofs << "#include \"src/anvil/api.hpp\"\n\n";
@@ -75,7 +75,7 @@ namespace anvil {
                     ofs << "    });\n";
                     ofs << "}\n";
                     ofs.close();
-                    std::cout << "[Anvil] Created default build.cpp at " << userScript << std::endl;
+                    std::cerr << "[Anvil] Created default build.cpp at " << userScript << std::endl;
                 } else {
                     std::cerr << "Error: Failed to create build.cpp at " << userScript << std::endl;
                     return 1;
@@ -83,7 +83,7 @@ namespace anvil {
             }
 
             try {
-                std::cout << "[Anvil] Starting BSP Mode..." << std::endl;
+                std::cerr << "[Anvil] Starting BSP Mode..." << std::endl;
                 ScriptCompiler compiler(includeDir, buildDir);
                 fs::path runnerExe = compiler.compile(userScript);
 

@@ -35,7 +35,7 @@ namespace anvil {
                 return;
             }
 
-            std::cout << "[Anvil] Resolving project dependencies..." << std::endl;
+            std::cerr << "[Anvil] Resolving project dependencies..." << std::endl;
 
             for (const auto& dep : all_deps_set) {
                 install_dependency(dep);
@@ -61,7 +61,7 @@ namespace anvil {
             }
 
             if (!include_paths.empty() || !link_flags.empty()) {
-                std::cout << "[Anvil] Linking dependencies to all targets." << std::endl;
+                std::cerr << "[Anvil] Linking dependencies to all targets." << std::endl;
                 for (auto& target : project.targets) {
                     for(const auto& p : include_paths) {
                         target.add_include(p);
@@ -134,7 +134,7 @@ namespace anvil {
                 return;
             }
 
-            std::cout << "[Anvil] Installing Conan locally to " << conanEnvDir.string() << "..." << std::endl;
+            std::cerr << "[Anvil] Installing Conan locally to " << conanEnvDir.string() << "..." << std::endl;
 
             if (!fs::exists(conanEnvDir)) {
                 fs::create_directories(conanEnvDir);
@@ -168,7 +168,7 @@ namespace anvil {
 #endif
             std::system(profileCmd.c_str());
 
-            std::cout << "[Anvil] Conan installed successfully." << std::endl;
+            std::cerr << "[Anvil] Conan installed successfully." << std::endl;
         }
 
         void install_dependency(const std::string& dep) {
@@ -187,7 +187,7 @@ namespace anvil {
                 );
             }
 
-            std::cout << "  >> Installing " << dep << "..." << std::endl;
+            std::cerr << "  >> Installing " << dep << "..." << std::endl;
             int result = std::system(cmd.c_str());
             if (result != 0) {
                 std::cerr << "[Anvil Error] Failed to install dependency: " << dep << std::endl;

@@ -42,7 +42,7 @@ std::string escape_string(const std::string& input) {
 
 void generate_embedded_resources(const fs::path& libDir) {
     fs::path outputHeader = fs::current_path() / "src" / "anvil" / "embedded_resources.hpp";
-    std::cout << "[Anvil] Generating embedded resources to " << outputHeader << "..." << std::endl;
+    std::cerr << "[Anvil] Generating embedded resources to " << outputHeader << "..." << std::endl;
 
     std::ofstream out(outputHeader);
     out << "#pragma once\n";
@@ -173,6 +173,23 @@ int run_bsp_loop(const anvil::Project& project) {
                         });
                     }
                     response["result"] = {{"items", items}};
+                } else if (method == "buildTarget/cppOptions") {
+                    json items = json::array();
+                    for (const auto& target : project.targets) {
+                        std::vector<std::string> copts = {"-std=c++20"};
+                        for (const auto& inc : target.includes) {
+                            copts.push_back("-I" + (fs::current_path() / inc).string());
+                        }
+                        // Add defines if any (currently not exposed in Project/Target but structure is there)
+
+                        items.push_back({
+                            {"target", {{"uri", "target:" + target.name}}},
+                            {"copts", copts},
+                            {"defines", json::array()},
+                            {"linkopts", target.linkFlags}
+                        });
+                    }
+                    response["result"] = {{"items", items}};
                 } else if (method == "build/shutdown") {
                     response["result"] = nullptr;
                 } else if (method == "build/exit") {
@@ -227,14 +244,27 @@ int main(int argc, char* argv[]) {
         project.targets.push_back(project.application);
     }
 
+    fs::path rootDir = fs::current_path();
+    std::cerr << "[Anvil] Graph Loaded: " << project.name << std::endl;
+    std::cerr << "[Anvil] Working Directory: " << rootDir << std::endl;
+
+    // --- NEW: Resolve Dependencies ---
+    try {
+        anvil::PackageManager pkgMgr(rootDir / ".anvil" / "libraries");
+        pkgMgr.resolve(project);
+
+        // --- NEW: Generate Embedded Resources (Bootstrap) ---
+        generate_embedded_resources(rootDir / ".anvil" / "libraries");
+        // ----------------------------------------------------
+
+    } catch (const std::exception& e) {
+        return 1;
+    }
+    // ---------------------------------
+
     if (runBsp) {
         return run_bsp_loop(project);
     }
-
-    std::cout << "[Anvil] Graph Loaded: " << project.name << std::endl;
-    
-    fs::path rootDir = fs::current_path();
-    std::cout << "[Anvil] Working Directory: " << rootDir << std::endl;
 
     // Verify sources exist for all targets
     bool missingSources = false;
@@ -271,20 +301,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // --- NEW: Resolve Dependencies ---
-    try {
-        anvil::PackageManager pkgMgr(rootDir / ".anvil" / "libraries");
-        pkgMgr.resolve(project);
-
-        // --- NEW: Generate Embedded Resources (Bootstrap) ---
-        generate_embedded_resources(rootDir / ".anvil" / "libraries");
-        // ----------------------------------------------------
-
-    } catch (const std::exception& e) {
-        return 1;
-    }
-    // ---------------------------------
-
     anvil::DependencyManager deps(rootDir / ".anvil" / "tools");
 
     try {
@@ -295,7 +311,7 @@ int main(int argc, char* argv[]) {
             writer.generate(project);
         }
 
-        std::cout << "[Anvil] Executing Ninja..." << std::endl;
+        std::cerr << "[Anvil] Executing Ninja..." << std::endl;
         std::string cmd = ninjaExe.string();
         int buildResult = std::system(cmd.c_str());
 
@@ -314,13 +330,13 @@ int main(int argc, char* argv[]) {
                     binPath += ".exe";
 #endif
                     if (fs::exists(binPath)) {
-                        std::cout << "[Anvil] Running Test: " << target.name << "..." << std::endl;
+                        std::cerr << "[Anvil] Running Test: " << target.name << "..." << std::endl;
                         int result = std::system(binPath.string().c_str());
                         if (result != 0) {
                             std::cerr << "[Anvil] Test " << target.name << " failed." << std::endl;
                             allTestsPassed = false;
                         } else {
-                            std::cout << "[Anvil] Test " << target.name << " passed." << std::endl;
+                            std::cerr << "[Anvil] Test " << target.name << " passed." << std::endl;
                         }
                     } else {
                         std::cerr << "[Anvil Error] Test executable not found: " << binPath << std::endl;
@@ -330,7 +346,7 @@ int main(int argc, char* argv[]) {
              }
 
              if (!testsFound) {
-                 std::cout << "[Anvil] No tests found." << std::endl;
+                 std::cerr << "[Anvil] No tests found." << std::endl;
              }
 
              if (!allTestsPassed) return 1;
@@ -352,7 +368,7 @@ int main(int argc, char* argv[]) {
                 binPath += ".exe";
 #endif
                 if (fs::exists(binPath)) {
-                    std::cout << "[Anvil] Running " << targetToRun->name << "..." << std::endl;
+                    std::cerr << "[Anvil] Running " << targetToRun->name << "..." << std::endl;
                     std::string runCmd = binPath.string();
                     for (const auto& arg : runArgs) {
                         runCmd += " " + arg;
@@ -363,7 +379,7 @@ int main(int argc, char* argv[]) {
                     return 1;
                 }
             } else {
-                std::cout << "[Anvil] No executable target found to run." << std::endl;
+                std::cerr << "[Anvil] No executable target found to run." << std::endl;
             }
         }
 
