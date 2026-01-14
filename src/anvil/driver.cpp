@@ -6,18 +6,195 @@
 #include <filesystem>
 #include <vector>
 #include <string>
+#include <fstream>
+#include <map>
+
+#if __has_include(<nlohmann/json.hpp>)
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+#endif
 
 extern "C" void configure(anvil::Project& project);
 
 namespace fs = std::filesystem;
 
+// Helper to read file content
+std::string read_file_content(const fs::path& path) {
+    std::ifstream f(path, std::ios::in | std::ios::binary);
+    if (!f) return "";
+    return std::string((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+}
+
+// Helper to escape string for C++ source
+std::string escape_string(const std::string& input) {
+    std::string output;
+    output.reserve(input.size() * 1.1);
+    for (char c : input) {
+        if (c == '\\') output += "\\\\";
+        else if (c == '"') output += "\\\"";
+        else if (c == '\n') output += "\\n";
+        else if (c == '\r') output += "\\r";
+        else if (c == '\t') output += "\\t";
+        else output += c;
+    }
+    return output;
+}
+
+void generate_embedded_resources(const fs::path& libDir) {
+    fs::path outputHeader = fs::current_path() / "src" / "anvil" / "embedded_resources.hpp";
+    std::cout << "[Anvil] Generating embedded resources to " << outputHeader << "..." << std::endl;
+
+    std::ofstream out(outputHeader);
+    out << "#pragma once\n";
+    out << "#include <string_view>\n";
+    out << "#include <map>\n";
+    out << "#include <string>\n\n";
+    out << "namespace anvil {\n";
+
+    std::map<std::string, fs::path> files_to_embed;
+
+    // Find json.hpp in libDir (Conan output)
+    // Typically in libDir/full_deploy/include/nlohmann/json.hpp
+    bool jsonFound = false;
+    if (fs::exists(libDir / "full_deploy")) {
+        for (const auto& entry : fs::recursive_directory_iterator(libDir / "full_deploy")) {
+            if (entry.path().filename() == "json.hpp") {
+                files_to_embed["nlohmann/json.hpp"] = entry.path();
+                jsonFound = true;
+                break;
+            }
+        }
+    }
+
+    if (!jsonFound) {
+        std::cerr << "[Warning] json.hpp not found in " << libDir << std::endl;
+    }
+
+    // Embed source files
+    fs::path srcDir = fs::current_path() / "src" / "anvil";
+    if (fs::exists(srcDir)) {
+        for (const auto& entry : fs::directory_iterator(srcDir)) {
+            if (entry.path().extension() == ".hpp" || entry.path().extension() == ".cpp") {
+                if (entry.path().filename() != "embedded_resources.hpp") {
+                    files_to_embed["anvil/" + entry.path().filename().string()] = entry.path();
+                }
+            }
+        }
+    }
+
+    // Write file contents as variables
+    int counter = 0;
+    for (const auto& [name, path] : files_to_embed) {
+        std::string content = read_file_content(path);
+        out << "inline const char file_" << counter << "[] = \"" << escape_string(content) << "\";\n";
+        counter++;
+    }
+
+    out << "\ninline std::map<std::string, std::string_view> get_embedded_files() {\n";
+    out << "    return {\n";
+
+    counter = 0;
+    for (const auto& [name, path] : files_to_embed) {
+        out << "        {\"" << name << "\", file_" << counter << "},\n";
+        counter++;
+    }
+
+    out << "    };\n";
+    out << "}\n";
+    out << "}\n";
+}
+
 // BSP Loop
 int run_bsp_loop(const anvil::Project& project) {
-    std::string line;
-    while (std::getline(std::cin, line)) {
-        std::cerr << "[BSP Stub] Received: " << line << std::endl;
+#if __has_include(<nlohmann/json.hpp>)
+    while (true) {
+        std::string line;
+        std::getline(std::cin, line);
+        if (line.empty()) continue;
+
+        if (line.starts_with("Content-Length: ")) {
+            int length = std::stoi(line.substr(16));
+            std::getline(std::cin, line); // Skip empty line
+
+            std::vector<char> buffer(length);
+            std::cin.read(buffer.data(), length);
+            std::string content(buffer.begin(), buffer.end());
+
+            try {
+                json request = json::parse(content);
+                std::string method = request["method"];
+                json response;
+                response["jsonrpc"] = "2.0";
+                response["id"] = request["id"];
+
+                if (method == "build/initialize") {
+                    response["result"] = {
+                        {"displayName", "Anvil"},
+                        {"version", "0.1.0"},
+                        {"bspVersion", "2.0.0"},
+                        {"capabilities", {
+                            {"compileProvider", {
+                                {"languageIds", {"cpp"}}
+                            }}
+                        }}
+                    };
+                } else if (method == "workspace/buildTargets") {
+                    json targets = json::array();
+                    for (const auto& target : project.targets) {
+                        targets.push_back({
+                            {"id", {{"uri", "target:" + target.name}}},
+                            {"displayName", target.name},
+                            {"baseDirectory", fs::current_path().string()},
+                            {"tags", {}},
+                            {"languageIds", {"cpp"}},
+                            {"dependencies", {}},
+                            {"capabilities", {
+                                {"canCompile", true},
+                                {"canTest", target.type == anvil::AppType::Test},
+                                {"canRun", target.type == anvil::AppType::Executable}
+                            }}
+                        });
+                    }
+                    response["result"] = {{"targets", targets}};
+                } else if (method == "buildTarget/sources") {
+                    json items = json::array();
+                    for (const auto& target : project.targets) {
+                        json sources = json::array();
+                        for (const auto& src : target.sources) {
+                            sources.push_back({
+                                {"uri", "file://" + (fs::current_path() / src).string()},
+                                {"kind", 1},
+                                {"generated", false}
+                            });
+                        }
+                        items.push_back({
+                            {"target", {{"uri", "target:" + target.name}}},
+                            {"sources", sources}
+                        });
+                    }
+                    response["result"] = {{"items", items}};
+                } else if (method == "build/shutdown") {
+                    response["result"] = nullptr;
+                } else if (method == "build/exit") {
+                    return 0;
+                } else {
+                    // Ignore unknown methods for now
+                    continue;
+                }
+
+                std::string responseStr = response.dump();
+                std::cout << "Content-Length: " << responseStr.length() << "\r\n\r\n" << responseStr << std::flush;
+
+            } catch (const std::exception& e) {
+                std::cerr << "[BSP Error] " << e.what() << std::endl;
+            }
+        }
     }
     return 0;
+#else
+    std::cerr << "[Anvil Error] BSP mode requires nlohmann/json.hpp (not found during compilation)." << std::endl;
+    return 1;
+#endif
 }
 
 int main(int argc, char* argv[]) {
@@ -98,6 +275,11 @@ int main(int argc, char* argv[]) {
     try {
         anvil::PackageManager pkgMgr(rootDir / ".anvil" / "libraries");
         pkgMgr.resolve(project);
+
+        // --- NEW: Generate Embedded Resources (Bootstrap) ---
+        generate_embedded_resources(rootDir / ".anvil" / "libraries");
+        // ----------------------------------------------------
+
     } catch (const std::exception& e) {
         return 1;
     }

@@ -56,11 +56,11 @@ namespace anvil {
             fs::path buildDir = projectRoot / ".anvil";
             fs::path userScript = projectRoot / "build.cpp";
 
-            // Assuming 'include' is relative to the executable location as per original logic,
-            // but we should probably make this robust too.
-            // Original: exeDir.parent_path() / "include"
-            // If the structure is fixed inside the wrapper (bin/anvil, include/...), then:
+            // Resolve include directory with fallback for development environment
             fs::path includeDir = absExePath.parent_path().parent_path() / "include";
+            if (!fs::exists(includeDir / "anvil" / "driver.cpp")) {
+                includeDir = projectRoot / "src";
+            }
 
             // 3. Implement Auto-Repair
             if (!fs::exists(userScript)) {
