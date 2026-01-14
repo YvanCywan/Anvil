@@ -7,6 +7,7 @@
 #include "clean_command.hpp"
 #include "run_command.hpp"
 #include "test_command.hpp"
+#include "bsp_command.hpp"
 
 namespace anvil {
     class App {
@@ -18,6 +19,7 @@ namespace anvil {
             registry.registerCommand(std::make_unique<CleanCommand>());
             registry.registerCommand(std::make_unique<RunCommand>());
             registry.registerCommand(std::make_unique<TestCommand>());
+            registry.registerCommand(std::make_unique<BspCommand>());
 
             if (argc < 2) {
                 registry.printHelp();

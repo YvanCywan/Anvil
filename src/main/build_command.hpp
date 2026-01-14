@@ -22,11 +22,9 @@ namespace anvil {
             fs::path rootDir = fs::current_path();
             fs::path userScript = rootDir / "build.cpp";
 
-            // Derive include path from executable location
             fs::path exeDir = fs::absolute(exePath).parent_path();
             fs::path includeDir = exeDir.parent_path() / "include";
 
-            // Fallback for development environment (when running from bin/anvil inside the project)
             if (!fs::exists(includeDir / "anvil" / "driver.cpp")) {
                 includeDir = rootDir / "src";
             }

@@ -11,9 +11,16 @@ extern "C" void configure(anvil::Project& project);
 
 namespace fs = std::filesystem;
 
+// Placeholder for BSP loop
+int run_bsp_loop(anvil::Project& project) {
+    std::cout << "[Anvil BSP] Ready" << std::endl;
+    return 0;
+}
+
 int main(int argc, char* argv[]) {
     bool runAfterBuild = false;
     bool runTests = false;
+    bool runBsp = false;
     std::vector<std::string> runArgs;
 
     // Simple argument parsing
@@ -23,6 +30,8 @@ int main(int argc, char* argv[]) {
             runAfterBuild = true;
         } else if (arg == "--test") {
             runTests = true;
+        } else if (arg == "--bsp") {
+            runBsp = true;
         } else if (runAfterBuild) {
             // Collect arguments for the target application
             runArgs.push_back(arg);
@@ -32,6 +41,10 @@ int main(int argc, char* argv[]) {
     anvil::Project project;
     
     configure(project);
+
+    if (runBsp) {
+        return run_bsp_loop(project);
+    }
 
     std::cout << "[Anvil] Graph Loaded: " << project.name << std::endl;
     

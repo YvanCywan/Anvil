@@ -32,6 +32,18 @@ namespace anvil {
 #ifdef _WIN32
             runnerExe += ".exe";
 #endif
+
+            // Check if we can skip compilation
+            if (fs::exists(runnerExe) && fs::exists(userScript)) {
+                auto runnerTime = fs::last_write_time(runnerExe);
+                auto scriptTime = fs::last_write_time(userScript);
+
+                if (runnerTime > scriptTime) {
+                    // Runner is newer than the script, so we can reuse it
+                    return runnerExe;
+                }
+            }
+
             const fs::path driverSrc = sourceDir / "anvil" / "driver.cpp";
 
             std::vector<std::string> flags = {
