@@ -53,6 +53,16 @@ namespace anvil {
                 driverSrc.string()
             };
 
+            // Header Discovery: Scan .anvil/libraries/full_deploy for include directories
+            fs::path libDir = buildDir / "libraries" / "full_deploy";
+            if (fs::exists(libDir)) {
+                for (const auto& entry : fs::recursive_directory_iterator(libDir)) {
+                    if (entry.is_directory() && entry.path().filename() == "include") {
+                        flags.push_back("-I " + entry.path().string());
+                    }
+                }
+            }
+
 #ifdef _WIN32
             flags.push_back("-static");
 #endif

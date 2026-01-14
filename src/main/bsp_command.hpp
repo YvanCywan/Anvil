@@ -41,11 +41,6 @@ namespace anvil {
 
                 std::string cmd = runnerExe.string() + " --bsp";
 
-                // On Windows, we might need to quote the path if it contains spaces
-                // But for now, let's assume simple paths or that exec handles it
-
-                // We use system() here to hand over control, but exec() from process.hpp is also fine
-                // Since we want to run the runner in BSP mode, we just execute it.
                 return std::system(cmd.c_str());
 
             } catch (const std::exception &e) {
