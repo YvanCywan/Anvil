@@ -5,6 +5,7 @@
 #include "process.hpp"
 #include <filesystem>
 #include <iostream>
+#include <fstream>
 
 namespace anvil {
     namespace fs = std::filesystem;
@@ -61,9 +62,24 @@ namespace anvil {
             // If the structure is fixed inside the wrapper (bin/anvil, include/...), then:
             fs::path includeDir = absExePath.parent_path().parent_path() / "include";
 
+            // 3. Implement Auto-Repair
             if (!fs::exists(userScript)) {
-                std::cerr << "Error: build.cpp not found in " << projectRoot << std::endl;
-                return 1;
+                std::cout << "[Anvil] Repairing: 'build.cpp' not found..." << std::endl;
+                std::ofstream ofs(userScript);
+                if (ofs) {
+                    ofs << "#include \"src/anvil/api.hpp\"\n\n";
+                    ofs << "void configure(anvil::Project& project) {\n";
+                    ofs << "    project.name = \"New Project\";\n";
+                    ofs << "    project.add_executable(\"app\", [](anvil::CppApplication& app) {\n";
+                    ofs << "        app.add_source(\"src/main.cpp\");\n";
+                    ofs << "    });\n";
+                    ofs << "}\n";
+                    ofs.close();
+                    std::cout << "[Anvil] Created default build.cpp at " << userScript << std::endl;
+                } else {
+                    std::cerr << "Error: Failed to create build.cpp at " << userScript << std::endl;
+                    return 1;
+                }
             }
 
             try {
