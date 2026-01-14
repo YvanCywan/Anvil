@@ -3,7 +3,7 @@
 #include <utility>
 #include <filesystem>
 #include <vector>
-#include "main/process.hpp"
+#include <cstdlib>
 #include "toolchain.hpp"
 #include <iostream>
 #include <fstream>
@@ -28,6 +28,10 @@ namespace anvil {
             } else {
                 toolchain = std::make_unique<ClangToolchain>();
             }
+        }
+
+        bool exec(const std::string& cmd) const {
+            return std::system(cmd.c_str()) == 0;
         }
 
         [[nodiscard]] fs::path compile(const fs::path& userScript) const {
@@ -95,6 +99,19 @@ namespace anvil {
                 }
             }
 
+            // Also check for wrapper directory (legacy/consumer projects)
+            fs::path wrapperDir = buildDir / "wrapper";
+            if (fs::exists(wrapperDir)) {
+                for (const auto& entry : fs::directory_iterator(wrapperDir)) {
+                    if (entry.is_directory()) {
+                        fs::path includePath = entry.path() / "include";
+                        if (fs::exists(includePath)) {
+                            flags.push_back("-I " + includePath.string());
+                        }
+                    }
+                }
+            }
+
 #ifdef _WIN32
             flags.push_back("-static");
 #endif
@@ -102,6 +119,7 @@ namespace anvil {
             std::string cmd = toolchain->getCompileCommand(userScript, runnerExe, flags);
 
             std::cout << "[Anvil] Compiling build script with: " << toolchain->getCompiler() << std::endl;
+            std::cout << "  >> " << cmd << std::endl;
 
             if (!exec(cmd)) {
                 throw std::runtime_error("Failed to compile build script");
