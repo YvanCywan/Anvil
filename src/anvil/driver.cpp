@@ -13,9 +13,11 @@ namespace fs = std::filesystem;
 
 // BSP Loop
 int run_bsp_loop(const anvil::Project& project) {
-    // Logic removed to eliminate dependency on nlohmann::json
-    std::cerr << "[Anvil Error] BSP mode is currently disabled due to removal of JSON dependency." << std::endl;
-    return 1;
+    std::string line;
+    while (std::getline(std::cin, line)) {
+        std::cerr << "[BSP Stub] Received: " << line << std::endl;
+    }
+    return 0;
 }
 
 int main(int argc, char* argv[]) {
