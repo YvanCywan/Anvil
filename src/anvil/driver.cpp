@@ -54,32 +54,43 @@ void generate_embedded_resources(const fs::path& libDir) {
     std::map<std::string, fs::path> files_to_embed;
 
     // Find json.hpp in libDir (Conan output)
-    // Typically in libDir/full_deploy/include/nlohmann/json.hpp
     bool jsonFound = false;
     if (fs::exists(libDir / "full_deploy")) {
-        // First look for nlohmann directory to support multi-header distribution
+        std::vector<fs::path> candidates;
         for (const auto& entry : fs::recursive_directory_iterator(libDir / "full_deploy")) {
-            if (entry.is_directory() && entry.path().filename() == "nlohmann") {
-                for (const auto& subEntry : fs::recursive_directory_iterator(entry.path())) {
-                    if (subEntry.is_regular_file()) {
-                        fs::path relPath = fs::relative(subEntry.path(), entry.path());
-                        files_to_embed["nlohmann/" + relPath.generic_string()] = subEntry.path();
-                    }
-                }
-                jsonFound = true;
-                break;
+            if (entry.is_regular_file() && entry.path().filename() == "json.hpp") {
+                candidates.push_back(entry.path());
             }
         }
 
-        // Fallback: if nlohmann dir not found, look for standalone json.hpp
-        if (!jsonFound) {
-            for (const auto& entry : fs::recursive_directory_iterator(libDir / "full_deploy")) {
-                if (entry.path().filename() == "json.hpp") {
-                    files_to_embed["nlohmann/json.hpp"] = entry.path();
-                    jsonFound = true;
-                    break;
-                }
+        fs::path bestPath;
+        for (const auto& p : candidates) {
+            // Prefer path containing "include"
+            if (p.string().find("include") != std::string::npos) {
+                bestPath = p;
+                break;
             }
+        }
+        if (bestPath.empty() && !candidates.empty()) {
+            bestPath = candidates[0];
+        }
+
+        if (!bestPath.empty()) {
+            fs::path parent = bestPath.parent_path();
+            if (parent.filename() == "nlohmann") {
+                // Found inside nlohmann directory - assume multi-header or structured single-header
+                // Embed the entire nlohmann directory
+                for (const auto& subEntry : fs::recursive_directory_iterator(parent)) {
+                    if (subEntry.is_regular_file()) {
+                        fs::path relPath = fs::relative(subEntry.path(), parent);
+                        files_to_embed["nlohmann/" + relPath.generic_string()] = subEntry.path();
+                    }
+                }
+            } else {
+                // Found standalone json.hpp
+                files_to_embed["nlohmann/json.hpp"] = bestPath;
+            }
+            jsonFound = true;
         }
     }
 

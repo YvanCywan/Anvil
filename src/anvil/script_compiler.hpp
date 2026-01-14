@@ -99,19 +99,6 @@ namespace anvil {
                 }
             }
 
-            // Also check for wrapper directory (legacy/consumer projects)
-            fs::path wrapperDir = buildDir / "wrapper";
-            if (fs::exists(wrapperDir)) {
-                for (const auto& entry : fs::directory_iterator(wrapperDir)) {
-                    if (entry.is_directory()) {
-                        fs::path includePath = entry.path() / "include";
-                        if (fs::exists(includePath)) {
-                            flags.push_back("-I " + includePath.string());
-                        }
-                    }
-                }
-            }
-
 #ifdef _WIN32
             flags.push_back("-static");
 #endif
@@ -155,7 +142,9 @@ namespace anvil {
             std::cout << "[Anvil] Bootstrapping: Downloading json.hpp..." << std::endl;
             fs::create_directories(jsonPath.parent_path());
 
-            std::string url = "https://github.com/nlohmann/json/releases/download/v3.11.2/json.hpp";
+            // Use the include.zip release which contains all headers including adl_serializer.hpp
+            std::string url = "https://github.com/nlohmann/json/releases/download/v3.11.2/include.zip";
+            fs::path zipPath = targetDir / "json_include.zip";
 
 #ifdef _WIN32
             // Use a temporary powershell script to avoid quoting issues
@@ -163,7 +152,8 @@ namespace anvil {
             {
                 std::ofstream scriptFile(scriptPath);
                 scriptFile << "$ProgressPreference = 'SilentlyContinue'\n";
-                scriptFile << "Invoke-WebRequest -Uri '" << url << "' -OutFile '" << jsonPath.string() << "'\n";
+                scriptFile << "Invoke-WebRequest -Uri '" << url << "' -OutFile '" << zipPath.string() << "'\n";
+                scriptFile << "if ($?) { Expand-Archive -Path '" << zipPath.string() << "' -DestinationPath '" << targetDir.string() << "' -Force }\n";
                 scriptFile << "if (!$?) { exit 1 }\n";
             }
 
@@ -171,15 +161,42 @@ namespace anvil {
 
             if (!exec(cmd)) {
                 fs::remove(scriptPath);
-                throw std::runtime_error("Failed to download json.hpp via PowerShell");
+                throw std::runtime_error("Failed to download json include.zip via PowerShell");
             }
             fs::remove(scriptPath);
 #else
-            std::string cmd = "curl -L -o " + jsonPath.string() + " " + url;
+            std::string cmd = "curl -L -o " + zipPath.string() + " " + url;
             if (!exec(cmd)) {
-                throw std::runtime_error("Failed to download json.hpp");
+                throw std::runtime_error("Failed to download json include.zip");
+            }
+
+            cmd = "unzip -o " + zipPath.string() + " -d " + targetDir.string();
+            if (!exec(cmd)) {
+                throw std::runtime_error("Failed to unzip json include.zip");
             }
 #endif
+            fs::remove(zipPath);
+
+            // The zip extracts to include/nlohmann/json.hpp, so we might need to move things around
+            // or just ensure the include path is correct.
+            // The zip structure is usually: include/nlohmann/...
+            // We want targetDir/nlohmann/...
+
+            fs::path extractDir = targetDir / "include";
+            if (fs::exists(extractDir)) {
+                // Move contents of include/nlohmann to targetDir/nlohmann
+                fs::path sourceNlohmann = extractDir / "nlohmann";
+                fs::path targetNlohmann = targetDir / "nlohmann";
+
+                if (fs::exists(sourceNlohmann)) {
+                    // If target exists, remove it first to avoid conflicts
+                    if (fs::exists(targetNlohmann)) {
+                        fs::remove_all(targetNlohmann);
+                    }
+                    fs::rename(sourceNlohmann, targetNlohmann);
+                }
+                fs::remove_all(extractDir);
+            }
         }
     };
 }
