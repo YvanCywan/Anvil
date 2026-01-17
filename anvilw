@@ -4,7 +4,7 @@ set -e
 # --- Load Properties ---
 WRAPPER_PROP="wrapper/anvil-wrapper.properties"
 if [ ! -f "$WRAPPER_PROP" ]; then
-    echo "[Error] Cannot find $WRAPPER_PROP"
+    echo "[Error] Cannot find $WRAPPER_PROP" >&2
     exit 1
 fi
 
@@ -17,7 +17,7 @@ ANVIL_VERSION=$(get_prop "anvilVersion")
 REPO_URL=$(get_prop "repoUrl")
 
 if [ -z "$ANVIL_VERSION" ] || [ -z "$REPO_URL" ]; then
-    echo "[Error] anvilVersion or repoUrl missing in properties file."
+    echo "[Error] anvilVersion or repoUrl missing in properties file." >&2
     exit 1
 fi
 
@@ -26,12 +26,12 @@ OS="$(uname -s)"
 case "$OS" in
     Linux)  ARTIFACT_NAME="anvil-linux-x64.zip" ;;
     Darwin) ARTIFACT_NAME="anvil-macos-arm64.zip" ;;
-    *) echo "Unsupported OS: $OS"; exit 1 ;;
+    *) echo "Unsupported OS: $OS" >&2; exit 1 ;;
 esac
 
 # --- Resolve 'latest' Version ---
 if [ "$ANVIL_VERSION" = "latest" ]; then
-    echo "[anvilw] Checking for latest version..."
+    echo "[anvilw] Checking for latest version..." >&2
     LATEST_URL="$REPO_URL/releases/latest"
 
     if command -v curl >/dev/null 2>&1; then
@@ -41,12 +41,12 @@ if [ "$ANVIL_VERSION" = "latest" ]; then
         # wget: parse Location header from server response
         RESOLVED_URL=$(wget --server-response --spider "$LATEST_URL" 2>&1 | grep -i "Location:" | head -n 1 | awk '{print $2}')
     else
-        echo "Error: Neither curl nor wget found."
+        echo "Error: Neither curl nor wget found." >&2
         exit 1
     fi
 
     if [ -z "$RESOLVED_URL" ]; then
-        echo "[Error] Failed to resolve latest version from GitHub."
+        echo "[Error] Failed to resolve latest version from GitHub." >&2
         exit 1
     fi
 
@@ -60,7 +60,7 @@ if [ "$ANVIL_VERSION" = "latest" ]; then
         ANVIL_VERSION="$LATEST_TAG"
     fi
 
-    echo "[anvilw] Resolved latest to v$ANVIL_VERSION"
+    echo "[anvilw] Resolved latest to v$ANVIL_VERSION" >&2
 fi
 
 # --- Construct Download URL ---
@@ -75,7 +75,7 @@ TEMP_ZIP="$ANVIL_HOME/anvil.zip"
 
 # --- Download & Install ---
 if [ ! -f "$ANVIL_BIN" ]; then
-    echo "[anvilw] Downloading Anvil v$ANVIL_VERSION..."
+    echo "[anvilw] Downloading Anvil v$ANVIL_VERSION..." >&2
     mkdir -p "$ANVIL_HOME"
 
     # Download using curl or wget
@@ -87,12 +87,12 @@ if [ ! -f "$ANVIL_BIN" ]; then
 
     # Verify download wasn't empty
     if [ ! -s "$TEMP_ZIP" ]; then
-        echo "[Error] Download failed or file is empty."
+        echo "[Error] Download failed or file is empty." >&2
         rm -f "$TEMP_ZIP"
         exit 1
     fi
 
-    echo "[anvilw] Installing..."
+    echo "[anvilw] Installing..." >&2
     unzip -q -o "$TEMP_ZIP" -d "$ANVIL_HOME"
     rm "$TEMP_ZIP"
     chmod +x "$ANVIL_BIN"
@@ -102,7 +102,7 @@ fi
 # Manually bootstrap json.hpp if missing, as v0.1.100 fails to do so correctly.
 BOOTSTRAP_JSON=".anvil/bootstrap/nlohmann/json.hpp"
 if [ ! -f "$BOOTSTRAP_JSON" ]; then
-    echo "[anvilw] Patching dependencies for bootstrap..."
+    echo "[anvilw] Patching dependencies for bootstrap..." >&2
     mkdir -p .anvil/bootstrap
 
     # Download include.zip which contains all headers including adl_serializer.hpp

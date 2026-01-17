@@ -29,7 +29,7 @@ namespace anvil {
                 return ninjaPath;
             }
 
-            std::cout << "[Anvil] Downloading Ninja..." << std::endl;
+            std::cerr << "[Anvil] Downloading Ninja..." << std::endl;
 
             std::string url;
 #if defined(_WIN32)

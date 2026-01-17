@@ -13,6 +13,7 @@ At its core, Anvil is a single executable that compiles and runs a `build.cpp` f
 *   **Cross-Platform**: Works on Linux, macOS, and Windows.
 *   **Extensible**: Easily add new commands and functionality to the core Anvil executable.
 *   **Dependency Management**: Built-in integration with Conan for seamless package management.
+*   **IDE Integration**: Supports the Build Server Protocol (BSP) for rich IDE features like IntelliSense in editors such as CLion and VS Code.
 
 ## How It Works
 
@@ -242,6 +243,19 @@ To run your tests, use the `test` command:
 ```
 
 This will compile your test target (e.g., `my_tests`) and execute the test runner. The default test runner (injected automatically) will execute all registered tests and report the results.
+
+## IDE Integration (BSP)
+
+Anvil implements the **Build Server Protocol (BSP)**, allowing seamless integration with modern IDEs like CLion and VS Code (via Metals or other BSP clients). This provides features like:
+
+*   **IntelliSense**: Accurate code completion, navigation, and refactoring based on your actual build configuration.
+*   **Error Reporting**: Build errors are reported directly in the IDE editor.
+*   **Project Import**: Automatically imports your project structure, targets, and dependencies.
+
+To use Anvil with a BSP-compatible IDE:
+
+1.  Ensure the `.bsp/anvil.json` file exists in your project root (generated automatically or manually created).
+2.  Open your project in the IDE. The IDE should detect the BSP configuration and import the project using Anvil.
 
 ### Environment Variables
 
