@@ -226,9 +226,9 @@ int run_bsp_loop(const anvil::Project& project) {
                             {"id", {{"uri", "target:" + target.name}}},
                             {"displayName", target.name},
                             {"baseDirectory", path_to_uri(fs::current_path())},
-                            {"tags", {}},
+                            {"tags", json::array()},
                             {"languageIds", {"cpp"}},
-                            {"dependencies", {}},
+                            {"dependencies", json::array()},
                             {"capabilities", {
                                 {"canCompile", true},
                                 {"canTest", target.type == anvil::AppType::Test},
