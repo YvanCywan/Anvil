@@ -105,8 +105,8 @@ namespace anvil {
 
             std::string cmd = toolchain->getCompileCommand(userScript, runnerExe, flags);
 
-            std::cout << "[Anvil] Compiling build script with: " << toolchain->getCompiler() << std::endl;
-            std::cout << "  >> " << cmd << std::endl;
+            std::cerr << "[Anvil] Compiling build script with: " << toolchain->getCompiler() << std::endl;
+            std::cerr << "  >> " << cmd << std::endl;
 
             if (!exec(cmd)) {
                 throw std::runtime_error("Failed to compile build script");
@@ -139,7 +139,7 @@ namespace anvil {
                 return;
             }
 
-            std::cout << "[Anvil] Bootstrapping: Installing json.hpp via Conan..." << std::endl;
+            std::cerr << "[Anvil] Bootstrapping: Installing json.hpp via Conan..." << std::endl;
             fs::create_directories(targetDir);
 
             // Use Conan to install nlohmann_json
