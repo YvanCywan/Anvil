@@ -53,24 +53,25 @@ void generate_embedded_resources(const fs::path& libDir) {
 
     std::map<std::string, fs::path> files_to_embed;
 
-    // Find json.hpp in libDir (Conan output)
-    // Typically in libDir/full_deploy/include/nlohmann/json.hpp
-    bool jsonFound = false;
-    if (fs::exists(libDir / "full_deploy")) {
-        for (const auto& entry : fs::recursive_directory_iterator(libDir / "full_deploy")) {
-            if (entry.path().filename() == "json.hpp") {
-                files_to_embed["nlohmann/json.hpp"] = entry.path();
-                jsonFound = true;
-                break;
+    // Iterate through libDir/full_deploy to find "include" directories
+    fs::path fullDeployDir = libDir / "full_deploy";
+    if (fs::exists(fullDeployDir)) {
+        for (auto it = fs::recursive_directory_iterator(fullDeployDir); it != fs::recursive_directory_iterator(); ++it) {
+            if (it->is_directory() && it->path().filename() == "include") {
+                fs::path includeDir = it->path();
+                for (const auto& fileEntry : fs::recursive_directory_iterator(includeDir)) {
+                    if (fileEntry.is_regular_file()) {
+                        fs::path relativePath = fs::relative(fileEntry.path(), includeDir);
+                        std::string key = relativePath.generic_string();
+                        files_to_embed[key] = fileEntry.path();
+                    }
+                }
+                it.disable_recursion_pending();
             }
         }
     }
 
-    if (!jsonFound) {
-        std::cerr << "[Warning] json.hpp not found in " << libDir << std::endl;
-    }
-
-    // Embed source files
+    // Embed source files from src/anvil
     fs::path srcDir = fs::current_path() / "src" / "anvil";
     if (fs::exists(srcDir)) {
         for (const auto& entry : fs::directory_iterator(srcDir)) {
