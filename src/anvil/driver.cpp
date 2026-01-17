@@ -289,6 +289,93 @@ int run_bsp_loop(const anvil::Project& project) {
                         });
                     }
                     response["result"] = {{"items", items}};
+                } else if (method == "buildTarget/compile") {
+                    anvil::DependencyManager deps(fs::current_path() / ".anvil" / "tools");
+                    fs::path ninjaExe = deps.get_ninja();
+
+                    // Regenerate build.ninja to be safe
+                    {
+                        anvil::NinjaWriter writer("build.ninja");
+                        writer.generate(project);
+                    }
+
+                    std::string cmd = ninjaExe.string();
+                    int result = std::system(cmd.c_str());
+
+                    response["result"] = {{"statusCode", result == 0 ? 1 : 2}};
+                } else if (method == "buildTarget/cleanCache") {
+                    anvil::DependencyManager deps(fs::current_path() / ".anvil" / "tools");
+                    fs::path ninjaExe = deps.get_ninja();
+
+                    std::string cmd = ninjaExe.string() + " -t clean";
+                    std::system(cmd.c_str());
+
+                    response["result"] = {{"cleaned", true}};
+                } else if (method == "buildTarget/run") {
+                    // 1. Build first
+                    anvil::DependencyManager deps(fs::current_path() / ".anvil" / "tools");
+                    fs::path ninjaExe = deps.get_ninja();
+
+                    {
+                        anvil::NinjaWriter writer("build.ninja");
+                        writer.generate(project);
+                    }
+
+                    std::string buildCmd = ninjaExe.string();
+                    int buildResult = std::system(buildCmd.c_str());
+
+                    if (buildResult != 0) {
+                        response["result"] = {{"statusCode", 2}}; // Error
+                    } else {
+                        // 2. Parse target and run
+                        std::string targetUri = request["params"]["target"]["uri"];
+                        std::string targetName = targetUri.substr(7); // Remove "target:"
+
+                        fs::path binPath = fs::current_path() / "bin" / targetName;
+#ifdef _WIN32
+                        binPath += ".exe";
+#endif
+                        if (fs::exists(binPath)) {
+                            int runResult = std::system(binPath.string().c_str());
+                            response["result"] = {{"statusCode", runResult == 0 ? 1 : 2}};
+                        } else {
+                            std::cerr << "[BSP] Executable not found: " << binPath << std::endl;
+                            response["result"] = {{"statusCode", 2}};
+                        }
+                    }
+                } else if (method == "buildTarget/test") {
+                    // 1. Build first
+                    anvil::DependencyManager deps(fs::current_path() / ".anvil" / "tools");
+                    fs::path ninjaExe = deps.get_ninja();
+
+                    {
+                        anvil::NinjaWriter writer("build.ninja");
+                        writer.generate(project);
+                    }
+
+                    std::string buildCmd = ninjaExe.string();
+                    int buildResult = std::system(buildCmd.c_str());
+
+                    if (buildResult != 0) {
+                        response["result"] = {{"statusCode", 2}};
+                    } else {
+                        // 2. Run all test targets
+                        bool allPassed = true;
+                        for (const auto& target : project.targets) {
+                            if (target.type == anvil::AppType::Test) {
+                                fs::path binPath = fs::current_path() / "bin" / target.name;
+#ifdef _WIN32
+                                binPath += ".exe";
+#endif
+                                if (fs::exists(binPath)) {
+                                    std::cout << "[BSP] Running Test: " << target.name << std::endl;
+                                    int testResult = std::system(binPath.string().c_str());
+                                    if (testResult != 0) allPassed = false;
+                                }
+                            }
+                        }
+                        response["result"] = {{"statusCode", allPassed ? 1 : 2}};
+                    }
                 } else if (method == "build/shutdown") {
                     response["result"] = nullptr;
                 } else if (method == "build/exit") {
