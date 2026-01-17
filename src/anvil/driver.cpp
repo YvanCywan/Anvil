@@ -9,6 +9,10 @@
 #include <fstream>
 #include <map>
 #include <nlohmann/json.hpp>
+#include <cstdio>
+#include <memory>
+#include <array>
+#include <sstream>
 
 using json = nlohmann::json;
 
@@ -129,6 +133,59 @@ void generate_embedded_resources(const fs::path& libDir) {
     out << "}\n";
 }
 
+// Helper to get system include paths
+std::vector<std::string> get_system_include_paths() {
+    std::vector<std::string> paths;
+    std::string cmd;
+#ifdef _WIN32
+    cmd = "g++ -E -x c++ - -v < NUL 2>&1";
+#else
+    cmd = "c++ -E -x c++ - -v < /dev/null 2>&1";
+#endif
+
+    std::array<char, 128> buffer;
+    std::string result;
+
+#ifdef _WIN32
+    std::unique_ptr<FILE, decltype(&_pclose)> pipe(_popen(cmd.c_str(), "r"), _pclose);
+#else
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
+#endif
+
+    if (!pipe) {
+        std::cerr << "[Anvil] Failed to run compiler to detect include paths." << std::endl;
+        return paths;
+    }
+
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
+
+    std::istringstream stream(result);
+    std::string line;
+    bool capturing = false;
+    while (std::getline(stream, line)) {
+        if (line.find("#include <...> search starts here:") != std::string::npos) {
+            capturing = true;
+            continue;
+        }
+        if (line.find("End of search list.") != std::string::npos) {
+            capturing = false;
+            break;
+        }
+        if (capturing) {
+            size_t first = line.find_first_not_of(" \t");
+            if (first == std::string::npos) continue;
+            size_t last = line.find_last_not_of(" \t");
+            std::string path = line.substr(first, (last - first + 1));
+            if (!path.empty()) {
+                paths.push_back(path);
+            }
+        }
+    }
+    return paths;
+}
+
 // BSP Loop
 int run_bsp_loop(const anvil::Project& project) {
     while (true) {
@@ -198,9 +255,15 @@ int run_bsp_loop(const anvil::Project& project) {
                     }
                     response["result"] = {{"items", items}};
                 } else if (method == "buildTarget/cppOptions") {
+                    static std::vector<std::string> system_includes = get_system_include_paths();
+
                     json items = json::array();
                     for (const auto& target : project.targets) {
                         std::vector<std::string> copts;
+
+                        for (const auto& path : system_includes) {
+                            copts.push_back("-isystem" + path);
+                        }
 
                         switch (target.standard) {
                             case anvil::CppStandard::CPP_11: copts.push_back("-std=c++11"); break;
