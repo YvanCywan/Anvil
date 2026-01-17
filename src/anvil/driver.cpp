@@ -40,6 +40,32 @@ std::string escape_string(const std::string& input) {
     return output;
 }
 
+// Helper to convert path to URI
+std::string path_to_uri(const fs::path& p) {
+    fs::path absPath = fs::absolute(p);
+    std::string pathStr = absPath.string();
+    std::string uri;
+
+    // Replace backslashes with forward slashes
+    for (char& c : pathStr) {
+        if (c == '\\') c = '/';
+    }
+
+    // Prepend file://
+    if (pathStr.length() > 0 && (pathStr[0] == '/' || pathStr.find(':') != std::string::npos)) {
+        // If it starts with / (unix absolute) or has a drive letter (windows absolute), ensure we have enough slashes
+        if (pathStr[0] != '/') {
+             uri = "file:///" + pathStr;
+        } else {
+             uri = "file://" + pathStr;
+        }
+    } else {
+        uri = "file://" + pathStr;
+    }
+
+    return uri;
+}
+
 void generate_embedded_resources(const fs::path& libDir) {
     fs::path outputHeader = fs::current_path() / "src" / "anvil" / "embedded_resources.hpp";
     std::cerr << "[Anvil] Generating embedded resources to " << outputHeader << "..." << std::endl;
@@ -145,7 +171,7 @@ int run_bsp_loop(const anvil::Project& project) {
                         targets.push_back({
                             {"id", {{"uri", "target:" + target.name}}},
                             {"displayName", target.name},
-                            {"baseDirectory", fs::current_path().string()},
+                            {"baseDirectory", path_to_uri(fs::current_path())},
                             {"tags", {}},
                             {"languageIds", {"cpp"}},
                             {"dependencies", {}},
@@ -163,7 +189,7 @@ int run_bsp_loop(const anvil::Project& project) {
                         json sources = json::array();
                         for (const auto& src : target.sources) {
                             sources.push_back({
-                                {"uri", "file://" + (fs::current_path() / src).string()},
+                                {"uri", path_to_uri(fs::current_path() / src)},
                                 {"kind", 1},
                                 {"generated", false}
                             });
@@ -178,7 +204,7 @@ int run_bsp_loop(const anvil::Project& project) {
                     json items = json::array();
                     for (const auto& target : project.targets) {
                         std::vector<std::string> copts = {"-std=c++20"};
-                        for (const auto& inc : target.include_dirs) {
+                        for (const auto& inc : target.includes) {
                             copts.push_back("-I" + (fs::current_path() / inc).string());
                         }
                         // Add defines if any (currently not exposed in Project/Target but structure is there)
@@ -187,7 +213,7 @@ int run_bsp_loop(const anvil::Project& project) {
                             {"target", {{"uri", "target:" + target.name}}},
                             {"copts", copts},
                             {"defines", json::array()},
-                            {"linkopts", target.link_flags}
+                            {"linkopts", target.linkFlags}
                         });
                     }
                     response["result"] = {{"items", items}};
