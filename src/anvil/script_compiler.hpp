@@ -139,63 +139,32 @@ namespace anvil {
                 return;
             }
 
-            std::cout << "[Anvil] Bootstrapping: Downloading json.hpp..." << std::endl;
+            std::cout << "[Anvil] Bootstrapping: Installing json.hpp via Conan..." << std::endl;
             fs::create_directories(targetDir);
 
-            // Use the include.zip release which contains all headers including adl_serializer.hpp
-            std::string url = "https://github.com/nlohmann/json/releases/download/v3.11.2/include.zip";
-            fs::path zipPath = targetDir / "json_include.zip";
-
-#ifdef _WIN32
-            // Use a temporary powershell script to avoid quoting issues
-            fs::path scriptPath = targetDir / "download_json.ps1";
-            {
-                std::ofstream scriptFile(scriptPath);
-                scriptFile << "$ProgressPreference = 'SilentlyContinue'\n";
-                scriptFile << "Invoke-WebRequest -Uri '" << url << "' -OutFile '" << zipPath.string() << "'\n";
-                scriptFile << "if ($?) { Expand-Archive -Path '" << zipPath.string() << "' -DestinationPath '" << targetDir.string() << "' -Force }\n";
-                scriptFile << "if (!$?) { exit 1 }\n";
-            }
-
-            std::string cmd = "powershell -ExecutionPolicy Bypass -File \"" + scriptPath.string() + "\"";
+            // Use Conan to install nlohmann_json
+            std::string cmd = "conan install --requires=nlohmann_json/3.11.2 --deployer=full_deploy --build=missing -of " + targetDir.string();
 
             if (!exec(cmd)) {
-                fs::remove(scriptPath);
-                throw std::runtime_error("Failed to download json include.zip via PowerShell");
-            }
-            fs::remove(scriptPath);
-#else
-            std::string cmd = "curl -L -o " + zipPath.string() + " " + url;
-            if (!exec(cmd)) {
-                throw std::runtime_error("Failed to download json include.zip");
+                throw std::runtime_error("Failed to install nlohmann_json via Conan");
             }
 
-            cmd = "unzip -o " + zipPath.string() + " -d " + targetDir.string();
-            if (!exec(cmd)) {
-                throw std::runtime_error("Failed to unzip json include.zip");
-            }
-#endif
-            fs::remove(zipPath);
-
-            // The zip extracts to include/nlohmann/json.hpp, so we might need to move things around
-            // or just ensure the include path is correct.
-            // The zip structure is usually: include/nlohmann/...
-            // We want targetDir/nlohmann/...
-
-            fs::path extractDir = targetDir / "include";
-            if (fs::exists(extractDir)) {
-                // Move contents of include/nlohmann to targetDir/nlohmann
-                fs::path sourceNlohmann = extractDir / "nlohmann";
-                fs::path targetNlohmann = targetDir / "nlohmann";
-
-                if (fs::exists(sourceNlohmann)) {
-                    // If target exists, remove it first to avoid conflicts
-                    if (fs::exists(targetNlohmann)) {
-                        fs::remove_all(targetNlohmann);
+            // Move headers from full_deploy/include to targetDir
+            fs::path fullDeployInclude = targetDir / "full_deploy" / "host" / "include";
+            if (fs::exists(fullDeployInclude)) {
+                for (const auto& entry : fs::directory_iterator(fullDeployInclude)) {
+                    fs::path dest = targetDir / entry.path().filename();
+                    if (fs::exists(dest)) {
+                        fs::remove_all(dest);
                     }
-                    fs::rename(sourceNlohmann, targetNlohmann);
+                    fs::rename(entry.path(), dest);
                 }
-                fs::remove_all(extractDir);
+                fs::remove_all(targetDir / "full_deploy");
+            } else {
+                 // Fallback: check if conan put it somewhere else or failed silently
+                 // Some conan versions/generators might behave differently.
+                 // But for now, assume standard full_deploy behavior.
+                 std::cerr << "[Warning] Conan full_deploy include directory not found at " << fullDeployInclude << std::endl;
             }
         }
     };
