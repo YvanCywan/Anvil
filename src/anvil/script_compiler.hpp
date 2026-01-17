@@ -140,7 +140,7 @@ namespace anvil {
             }
 
             std::cout << "[Anvil] Bootstrapping: Downloading json.hpp..." << std::endl;
-            fs::create_directories(jsonPath.parent_path());
+            fs::create_directories(targetDir);
 
             // Use the include.zip release which contains all headers including adl_serializer.hpp
             std::string url = "https://github.com/nlohmann/json/releases/download/v3.11.2/include.zip";
