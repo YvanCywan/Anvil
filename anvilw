@@ -98,5 +98,28 @@ if [ ! -f "$ANVIL_BIN" ]; then
     chmod +x "$ANVIL_BIN"
 fi
 
+# --- Dependency Patch for v0.1.100 ---
+# Manually bootstrap json.hpp if missing, as v0.1.100 fails to do so correctly.
+BOOTSTRAP_JSON=".anvil/bootstrap/nlohmann/json.hpp"
+if [ ! -f "$BOOTSTRAP_JSON" ]; then
+    echo "[anvilw] Patching dependencies for bootstrap..."
+    mkdir -p .anvil/bootstrap
+
+    # Download include.zip which contains all headers including adl_serializer.hpp
+    curl -L -o .anvil/bootstrap/include.zip https://github.com/nlohmann/json/releases/download/v3.11.2/include.zip
+
+    # Unzip into .anvil/bootstrap
+    unzip -q -o .anvil/bootstrap/include.zip -d .anvil/bootstrap
+
+    # Move include/nlohmann to .anvil/bootstrap/nlohmann if needed
+    if [ -d ".anvil/bootstrap/include/nlohmann" ]; then
+        rm -rf .anvil/bootstrap/nlohmann
+        mv .anvil/bootstrap/include/nlohmann .anvil/bootstrap/nlohmann
+        rm -rf .anvil/bootstrap/include
+    fi
+
+    rm .anvil/bootstrap/include.zip
+fi
+
 # --- Execute ---
 exec "$ANVIL_BIN" "$@"
