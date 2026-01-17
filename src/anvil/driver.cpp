@@ -8,11 +8,9 @@
 #include <string>
 #include <fstream>
 #include <map>
-
-#if __has_include(<nlohmann/json.hpp>)
 #include <nlohmann/json.hpp>
+
 using json = nlohmann::json;
-#endif
 
 extern "C" void configure(anvil::Project& project);
 
@@ -133,7 +131,6 @@ void generate_embedded_resources(const fs::path& libDir) {
 
 // BSP Loop
 int run_bsp_loop(const anvil::Project& project) {
-#if __has_include(<nlohmann/json.hpp>)
     while (true) {
         std::string line;
         std::getline(std::cin, line);
@@ -235,10 +232,6 @@ int run_bsp_loop(const anvil::Project& project) {
         }
     }
     return 0;
-#else
-    std::cerr << "[Anvil Error] BSP mode requires nlohmann/json.hpp (not found during compilation)." << std::endl;
-    return 1;
-#endif
 }
 
 int main(int argc, char* argv[]) {

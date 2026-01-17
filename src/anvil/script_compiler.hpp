@@ -77,16 +77,16 @@ namespace anvil {
 
             // Add include paths
             if (fs::exists(embeddedDir)) {
-                flags.push_back("-I " + embeddedDir.string());
+                flags.push_back("-I" + embeddedDir.string());
             }
 
             // Add bootstrap directory for json.hpp
             if (fs::exists(bootstrapDir)) {
-                flags.push_back("-I " + bootstrapDir.string());
+                flags.push_back("-I" + bootstrapDir.string());
             }
 
             // Fallback include
-            flags.push_back("-I " + sourceDir.string());
+            flags.push_back("-I" + sourceDir.string());
 
             // Header Discovery: Scan .anvil/libraries/full_deploy for include directories
             // This is still needed for other dependencies the user might add
@@ -94,7 +94,7 @@ namespace anvil {
             if (fs::exists(libDir)) {
                 for (const auto& entry : fs::recursive_directory_iterator(libDir)) {
                     if (entry.is_directory() && entry.path().filename() == "include") {
-                        flags.push_back("-I " + entry.path().string());
+                        flags.push_back("-I" + entry.path().string());
                     }
                 }
             }
