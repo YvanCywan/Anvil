@@ -200,16 +200,28 @@ int run_bsp_loop(const anvil::Project& project) {
                 } else if (method == "buildTarget/cppOptions") {
                     json items = json::array();
                     for (const auto& target : project.targets) {
-                        std::vector<std::string> copts = {"-std=c++20"};
+                        std::vector<std::string> copts;
+
+                        switch (target.standard) {
+                            case anvil::CppStandard::CPP_11: copts.push_back("-std=c++11"); break;
+                            case anvil::CppStandard::CPP_14: copts.push_back("-std=c++14"); break;
+                            case anvil::CppStandard::CPP_17: copts.push_back("-std=c++17"); break;
+                            case anvil::CppStandard::CPP_20: copts.push_back("-std=c++20"); break;
+                            case anvil::CppStandard::CPP_23: copts.push_back("-std=c++23"); break;
+                        }
+
                         for (const auto& inc : target.include_dirs) {
                             copts.push_back("-I" + (fs::current_path() / inc).string());
                         }
-                        // Add defines if any (currently not exposed in Project/Target but structure is there)
+
+                        for (const auto& def : target.defines) {
+                            copts.push_back("-D" + def);
+                        }
 
                         items.push_back({
                             {"target", {{"uri", "target:" + target.name}}},
                             {"copts", copts},
-                            {"defines", json::array()},
+                            {"defines", target.defines},
                             {"linkopts", target.link_flags}
                         });
                     }
