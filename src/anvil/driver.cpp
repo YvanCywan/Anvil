@@ -178,7 +178,7 @@ int run_bsp_loop(const anvil::Project& project) {
                     json items = json::array();
                     for (const auto& target : project.targets) {
                         std::vector<std::string> copts = {"-std=c++20"};
-                        for (const auto& inc : target.includes) {
+                        for (const auto& inc : target.include_dirs) {
                             copts.push_back("-I" + (fs::current_path() / inc).string());
                         }
                         // Add defines if any (currently not exposed in Project/Target but structure is there)
@@ -187,7 +187,7 @@ int run_bsp_loop(const anvil::Project& project) {
                             {"target", {{"uri", "target:" + target.name}}},
                             {"copts", copts},
                             {"defines", json::array()},
-                            {"linkopts", target.linkFlags}
+                            {"linkopts", target.link_flags}
                         });
                     }
                     response["result"] = {{"items", items}};

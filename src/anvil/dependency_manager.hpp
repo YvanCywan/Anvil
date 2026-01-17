@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <iostream>
 #include <fstream>
-#include "main/process.hpp"
+#include <cstdlib>
 
 namespace anvil {
     namespace fs = std::filesystem;
@@ -14,6 +14,10 @@ namespace anvil {
     public:
         explicit DependencyManager(fs::path root) : toolsDir(std::move(root)) {
             fs::create_directories(toolsDir);
+        }
+
+        bool exec(const std::string& cmd) {
+            return std::system(cmd.c_str()) == 0;
         }
 
         fs::path get_ninja() {
